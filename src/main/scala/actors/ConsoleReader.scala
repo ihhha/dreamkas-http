@@ -9,7 +9,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import models.dreamkas.Password
-import models.dreamkas.commands.{FlagState, PrinterDateTime, ReportX, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
+import models.dreamkas.commands.{FlagState, PrinterDateTime, PaperCut, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
 import models.dreamkas.errors.DreamkasError
 
 class ConsoleReader extends Actor {
@@ -41,7 +41,7 @@ class ConsoleReader extends Actor {
           parent ! Command(ReportZ())
         case ":x" =>
 
-          parent ! Command(ReportX())
+          parent ! Command(PaperCut())
         case ":printerTime" =>
 
           parent ! Command(PrinterDateTime())

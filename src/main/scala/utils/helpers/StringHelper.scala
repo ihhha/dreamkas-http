@@ -4,6 +4,8 @@ import models.dreamkas.ModelTypes.Code
 
 object StringHelper {
 
+  val EMPTY_STRING = ""
+
   implicit class StringExt(string: String) {
     def leftPad(
       paddedLength: Int,
