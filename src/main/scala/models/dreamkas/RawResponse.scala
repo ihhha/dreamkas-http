@@ -3,6 +3,7 @@ package models.dreamkas
 import models.dreamkas.commands.CommandMainT.ETX
 import models.dreamkas.errors.DreamkasError._
 import models.dreamkas.errors.{DreamkasError, ErrorWithCode}
+import utils.Logging
 import utils.helpers.ArrayByteHelper._
 import utils.helpers.TupleIntHelper._
 
@@ -15,11 +16,17 @@ case class RawResponse(
   crc1byte: Int,
   crc2byte: Int,
   dataArray: Array[Byte] = Array.emptyByteArray
-) {
+) extends Logging {
 
   def result(index: Int): Option[DreamkasError] = {
-    val isCrcCorrect: Boolean = Array(packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, ETX)
-      .map(_.toByte).toCrc == Array(crc1byte.toByte, crc2byte.toByte).toUtf8String
+
+    val codesArray = Array(packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte).map(_.toByte)
+    val etxArray = Array(ETX.toByte)
+
+    val isCrcCorrect: Boolean =
+      (codesArray ++ dataArray ++ etxArray).toCrc == Array(crc1byte.toByte, crc2byte.toByte).toUtf8String
+
+    log.info(s"CRC: ${(codesArray ++ dataArray ++ etxArray).toCrc}")
 
     if (isCrcCorrect) {
       if (packetIndex == index) {
