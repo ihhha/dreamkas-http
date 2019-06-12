@@ -26,8 +26,6 @@ case class RawResponse(
     val isCrcCorrect: Boolean =
       (codesArray ++ dataArray ++ etxArray).toCrc == Array(crc1byte.toByte, crc2byte.toByte).toUtf8String
 
-    log.info(s"CRC: ${(codesArray ++ dataArray ++ etxArray).toCrc}")
-
     if (isCrcCorrect) {
       if (packetIndex == index) {
         (err1Byte, err2Byte).toCode match {
