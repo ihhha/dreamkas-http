@@ -8,8 +8,9 @@ import cats.syntax.applicative._
 import cats.syntax.either._
 import com.typesafe.config.ConfigFactory
 import models.dreamkas.{DeviceSettings, Password}
+import utils.Logging
 
-object ConfigService {
+object ConfigService extends Logging {
   private val config = ConfigFactory.load()
 
   def getPrinter(name: String): Option[DeviceSettings] = {
@@ -22,7 +23,7 @@ object ConfigService {
       parity <- Try(Parity(config.getInt(s"devices.$name.parity"))).toEither
       serialSettings <- SerialSettings(baud, characterSize, twoStopBits, parity).asRight
     } yield DeviceSettings(port, serialSettings, Password(password)).pure[Option]).valueOr { err =>
-      println(s"[ERROR] Failed to getConfig printer[$name]: ${err.getLocalizedMessage}")
+      log.error(s"Failed to getConfig printer[$name]: ${err.getLocalizedMessage}")
 
       None
     }

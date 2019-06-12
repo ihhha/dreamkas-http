@@ -17,8 +17,9 @@ import akka.util.Timeout
 import models.dreamkas.Password
 import models.dreamkas.commands.{TurnTo, Command => DreamkasCommand}
 import models.dreamkas.errors.DreamkasError
+import utils.Logging
 
-class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) {
+class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends Logging {
 
   implicit val system: ActorSystem = ActorSystem("http-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -30,8 +31,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) {
     ExceptionHandler {
       case err =>
         extractUri { uri =>
-          println(s"Request to $uri could not be handled normally")
-          println(s"[error] ${err.getLocalizedMessage}")
+          log.error(s"Request to $uri could not be handled normally: ${err.getLocalizedMessage}")
           complete(HttpResponse(InternalServerError, entity = "Bad numbers, bad result!!!"))
         }
     }

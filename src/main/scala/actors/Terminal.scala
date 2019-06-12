@@ -41,7 +41,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       IO(Serial) ! Serial.Open(deviceSettings.port, deviceSettings.serialSettings)
 
     case Serial.CommandFailed(cmd, reason) =>
-      log.error(s"Connection failed, retrying. Error: ${reason.getLocalizedMessage}")
+      log.error(s"Connection failed with ${reason.getLocalizedMessage}.")
     case Serial.Opened(port) =>
       log.info(s"Port $port is now open.")
       timers.cancel(ReconnectTimer)

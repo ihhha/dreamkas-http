@@ -32,7 +32,6 @@ case class RawResponse(
       }
     }
     else {
-      println(Array(packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, ETX).map(_.toByte).toCrc)
       Some(CrcError)
     }
   }
