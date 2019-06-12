@@ -1,10 +1,11 @@
 package models.dreamkas.commands
 
 import models.dreamkas.ModelTypes.Code
+import models.dreamkas.Password
 
-trait CommandBase {
+trait CommandBase extends CommandT {
 
   val code: Code
 
-  val toRequest: Array[Byte] = Array(code.toByte)
+  def toRequest(packetIndex: Int)(implicit password: Password) = Array(code.toByte)
 }

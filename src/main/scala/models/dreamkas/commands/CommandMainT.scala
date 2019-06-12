@@ -7,9 +7,6 @@ import utils.helpers.ArrayByteHelper._
 
 trait CommandMainT extends CommandBase {
 
-  val password: Password
-  val packetIndex: Int
-
   val code: Code
   val data: List[String] = List.empty[String]
   val options: List[String] = List.empty[String]
@@ -20,7 +17,7 @@ trait CommandMainT extends CommandBase {
     }.dropRight(1)
   }
 
-  override val toRequest: Array[Byte] = {
+  override def toRequest(packetIndex: Int)(implicit password: Password): Array[Byte] = {
     val msg = (password.bytes :+ packetIndex.toByte) ++ code.map(_.toByte) ++ dataArray :+ ETX.toByte
     val crc = msg.toCrc.map(_.toByte).toArray
     (STX.toByte +: msg) ++ crc

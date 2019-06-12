@@ -19,17 +19,17 @@ class CommandBuilderSpec extends FlatSpec with Matchers {
 
     val expected = Array(2, 80, 73, 82, 73, 39, 49, 48, 51, 49, 48, 53, 49, 57, 28, 48, 56, 50, 48, 48, 48, 3, 51, 69)
       .map(_.toByte)
-    turnTo(date, time).toRequest shouldBe expected
+    turnTo(date, time).toRequest(packetIndex) shouldBe expected
   }
 
   "FlagState" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, packetIndex, 48, 48, 3, 50, 54).map(_.toByte)
-    flagState.toRequest shouldBe expected
+    flagState.toRequest(packetIndex) shouldBe expected
   }
 
   "PrinterDateTime" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 49, 51, 3, 50, 52).map(_.toByte)
-    printerDateTime.toRequest shouldBe expected
+    printerDateTime.toRequest(packetIndex) shouldBe expected
   }
 
 }

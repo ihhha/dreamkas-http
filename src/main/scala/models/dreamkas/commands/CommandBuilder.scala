@@ -7,42 +7,42 @@ import models.dreamkas.Password
 
 object CommandBuilder {
 
-  def openSession(cashier: Option[String] = None)(implicit password: Password, packetIndex: Int): CommandMain = {
+  def openSession(cashier: Option[String] = None): CommandMain = {
     val data = List(cashier).flatten
-    CommandMain(OPEN_SESSION, password, packetIndex, data)
+    CommandMain(OPEN_SESSION, data)
   }
 
-  def reportX(cashier: Option[String] = None)(implicit password: Password, packetIndex: Int): CommandMain = {
+  def reportX(cashier: Option[String] = None): CommandMain = {
     val data = List(cashier).flatten
-    CommandMain(REPORT_X, password, packetIndex, data)
+    CommandMain(REPORT_X, data)
   }
 
-  def reportZ(cashier: Option[String] = None)(implicit password: Password, packetIndex: Int): CommandMain = {
+  def reportZ(cashier: Option[String] = None): CommandMain = {
     val data = List(cashier).flatten
-    CommandMain(REPORT_Z, password, packetIndex, data)
+    CommandMain(REPORT_Z, data)
   }
 
-  def turnTo(date: LocalDate, time: LocalTime)(implicit password: Password, packetIndex: Int): CommandMain = {
+  def turnTo(date: LocalDate, time: LocalTime): CommandMain = {
     val dataString = DateTimeFormatter.ofPattern("ddMMyy").format(date)
     val timeString = DateTimeFormatter.ofPattern("HHmmss").format(time)
 
     val data = List(dataString, timeString)
 
-    CommandMain(TURN_TO, password, packetIndex, data)
+    CommandMain(TURN_TO, data)
   }
 
-  def setDateTime(date: LocalDate, time: LocalTime)(implicit password: Password, packetIndex: Int): CommandMain = {
+  def setDateTime(date: LocalDate, time: LocalTime): CommandMain = {
     val dataString = DateTimeFormatter.ofPattern("ddMMyy").format(date)
     val timeString = DateTimeFormatter.ofPattern("HHmmss").format(time)
 
     val data = List(dataString, timeString)
 
-    CommandMain(SET_DATETIME, password, packetIndex, data)
+    CommandMain(SET_DATETIME, data)
   }
 
-  def flagState(implicit password: Password, packetIndex: Int) = CommandMain(FLAG_STATE, password, packetIndex)
+  def flagState = CommandMain(FLAG_STATE)
 
-  def printerDateTime(implicit password: Password, packetIndex: Int) = CommandMain(PRINTER_DATETIME, password, packetIndex)
+  def printerDateTime = CommandMain(PRINTER_DATETIME)
 
   val TURN_TO = "10"
   val FLAG_STATE = "00"

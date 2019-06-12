@@ -1,14 +1,15 @@
 package utils.helpers
 
+import models.dreamkas.ModelTypes.Code
+
 object StringHelper {
-  implicit class StringExt(str: String) {
+
+  implicit class StringExt(string: String) {
     def leftPad(
       paddedLength: Int,
       ch: Char = '.'
     ): String = {
-      var remLength = paddedLength - str.length
-
-      if (remLength <= 0) str
+      var remLength = paddedLength - string.length
 
       val builder = StringBuilder.newBuilder
 
@@ -16,9 +17,12 @@ object StringHelper {
         builder.append(ch)
       }
 
-      builder.append(str)
+      builder.append(string)
 
       builder.toString()
     }
+
+    implicit val toCode: Code = string.asInstanceOf[Code]
   }
+
 }

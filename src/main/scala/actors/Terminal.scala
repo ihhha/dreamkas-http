@@ -6,8 +6,9 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated, Timers, act
 import akka.io.IO
 import akka.serial.Serial
 import akka.util.ByteString
-import models.dreamkas.{DeviceSettings, Out}
-import services.HttpService
+import models.dreamkas.errors.DreamkasError.NoPrinterConnected
+import models.dreamkas.{DeviceSettings, Password}
+import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
 
 class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging with Timers {
@@ -15,9 +16,18 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
   import Terminal._
   import context._
 
+  implicit val password: Password = Password("PIRI")
+
   timers.startSingleTimer(StartTimer, Start, 2.seconds)
 
   val reader: ActorRef = actorOf(Props[ConsoleReader])
+
+  var currentIndex: Int = 0x1F
+
+  private def getNextIndex: Int = {
+    currentIndex = if (currentIndex > 0xF0 || currentIndex < 0x20) 0x20 else currentIndex + 1
+    currentIndex
+  }
 
   override def postStop(): Unit = {
     system.terminate()
@@ -39,6 +49,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       context become opened(operator)
       context watch operator
       reader ! ConsoleReader.Read
+    case HttpService.Command(_) => sender ! Some(NoPrinterConnected)
   }
 
   def opened(operator: ActorRef): Receive = {
@@ -56,17 +67,22 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
       reader ! ConsoleReader.Read
 
-    case ConsoleReader.Command(input) => val data = ByteString(input)
+    case ConsoleReader.Command(cmd) => val packetIndex = getNextIndex
+      val data = ByteString(cmd.toRequest(packetIndex))
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become waitingResponse(operator, sender)
-    case HttpService.OpenSession(name) =>
+      context become waitingResponse(operator, sender, packetIndex)
+
+    case HttpService.Command(cmd) => val packetIndex = getNextIndex
+      val data = ByteString(cmd.toRequest(packetIndex))
+      operator ! Serial.Write(data, length => Wrote(data.take(length)))
+      context become waitingResponse(operator, sender, packetIndex)
   }
 
-  def waitingResponse(operator: ActorRef, sender: ActorRef): Receive = {
+  def waitingResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int): Receive = {
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
-    case Serial.Received(data) => val out = Out(data)
+    case Serial.Received(data) => val out = TerminalService.processOut(data, commandIndex)
       log.info(s"Received data: ${formatData(data)}")
       context become opened(operator)
       sender ! out

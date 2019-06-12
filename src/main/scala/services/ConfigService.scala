@@ -28,4 +28,9 @@ object ConfigService {
     }
   }
 
+  val getSerialDebug: Boolean = config.getBoolean("serial.debug")
+
+  val getHost: String = config.getString("http.host")
+  val getPort: Int = config.getInt("http.port")
+
 }
