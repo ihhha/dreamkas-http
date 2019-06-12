@@ -7,7 +7,7 @@ import cats.instances.option._
 import cats.syntax.applicative._
 import cats.syntax.either._
 import com.typesafe.config.ConfigFactory
-import models.dreamkas.DeviceSettings
+import models.dreamkas.{DeviceSettings, Password}
 
 object ConfigService {
   private val config = ConfigFactory.load()
@@ -21,7 +21,7 @@ object ConfigService {
       twoStopBits <- Try(config.getBoolean(s"devices.$name.twoStopBits")).toEither
       parity <- Try(Parity(config.getInt(s"devices.$name.parity"))).toEither
       serialSettings <- SerialSettings(baud, characterSize, twoStopBits, parity).asRight
-    } yield DeviceSettings(port, serialSettings, password).pure[Option]).valueOr { err =>
+    } yield DeviceSettings(port, serialSettings, Password(password)).pure[Option]).valueOr { err =>
       println(s"[ERROR] Failed to getConfig printer[$name]: ${err.getLocalizedMessage}")
 
       None
@@ -32,5 +32,4 @@ object ConfigService {
 
   val getHost: String = config.getString("http.host")
   val getPort: Int = config.getInt("http.port")
-
 }

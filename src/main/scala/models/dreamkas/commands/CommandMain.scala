@@ -1,7 +1,6 @@
 package models.dreamkas.commands
 
 import models.dreamkas.ModelTypes.Code
-import models.dreamkas.Password
 
 case class CommandMain(
   override val code: Code,

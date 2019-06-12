@@ -68,12 +68,12 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       reader ! ConsoleReader.Read
 
     case ConsoleReader.Command(cmd) => val packetIndex = getNextIndex
-      val data = ByteString(cmd.toRequest(packetIndex))
+      val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
       context become waitingResponse(operator, sender, packetIndex)
 
     case HttpService.Command(cmd) => val packetIndex = getNextIndex
-      val data = ByteString(cmd.toRequest(packetIndex))
+      val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
       context become waitingResponse(operator, sender, packetIndex)
   }

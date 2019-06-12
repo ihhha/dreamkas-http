@@ -14,8 +14,8 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import models.dreamkas.commands.CommandBuilder._
-import models.dreamkas.commands.CommandT
+import models.dreamkas.Password
+import models.dreamkas.commands.{TurnTo, Command => DreamkasCommand}
 import models.dreamkas.errors.DreamkasError
 
 class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) {
@@ -38,10 +38,13 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) {
 
   val handler: Route = path("api" / "fiskal" / IntNumber) { terminalId =>
 
+    implicit val password: Password = ConfigService.getPrinter(s"printer$terminalId")
+      .map(_.password).getOrElse(Password("PIRI"))
+
     val date = LocalDate.now()
     val time = LocalTime.now()
     onSuccess(
-      (printer1 ? HttpService.Command(turnTo(date, time))).mapTo[Option[DreamkasError]]
+      (printer1 ? HttpService.Command(TurnTo(date, time))).mapTo[Option[DreamkasError]]
     ) {
       _.map(_.httpResponse).getOrElse(complete(HttpResponse(NoContent)))
     }
@@ -57,6 +60,6 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) {
 
 object HttpService {
 
-  case class Command(cmd: CommandT)
+  case class Command(cmd: DreamkasCommand)
 
 }

@@ -1,5 +1,6 @@
 package models.dreamkas.commands
 
+import akka.util.ByteString
 import models.dreamkas.ModelTypes.Code
 import models.dreamkas.Password
 import models.dreamkas.commands.CommandMainT._
@@ -17,10 +18,10 @@ trait CommandMainT extends CommandBase {
     }.dropRight(1)
   }
 
-  override def toRequest(packetIndex: Int)(implicit password: Password): Array[Byte] = {
+  override def request(packetIndex: Int)(implicit password: Password): ByteString = {
     val msg = (password.bytes :+ packetIndex.toByte) ++ code.map(_.toByte) ++ dataArray :+ ETX.toByte
     val crc = msg.toCrc.map(_.toByte).toArray
-    (STX.toByte +: msg) ++ crc
+    ByteString((STX.toByte +: msg) ++ crc)
   }
 }
 

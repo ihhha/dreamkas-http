@@ -6,5 +6,5 @@ import models.DeviceSettingsT
 case class DeviceSettings(
   override val port: String,
   override val serialSettings: SerialSettings,
-  password: String
+  password: Password
 ) extends DeviceSettingsT

@@ -8,9 +8,8 @@ import scala.io.StdIn
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import models.dreamkas.commands.CommandBuilder._
-import models.dreamkas.commands.CommandT
 import models.dreamkas.Password
+import models.dreamkas.commands.{FlagState, PrinterDateTime, ReportX, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
 import models.dreamkas.errors.DreamkasError
 
 class ConsoleReader extends Actor {
@@ -27,34 +26,34 @@ class ConsoleReader extends Actor {
           val date = LocalDate.now()
           val time = LocalTime.now()
 
-          parent ! Command(turnTo(date, time))
+          parent ! Command(TurnTo(date, time))
         case ":syncDateTime" =>
 
           val date = LocalDate.now()
           val time = LocalTime.now()
 
-          parent ! Command(setDateTime(date, time))
+          parent ! Command(SetDateTime(date, time))
         case ":status" =>
 
-          parent ! Command(flagState)
+          parent ! Command(FlagState())
         case ":z" =>
 
-          parent ! Command(reportZ())
+          parent ! Command(ReportZ())
         case ":x" =>
 
-          parent ! Command(reportX())
+          parent ! Command(ReportX())
         case ":printerTime" =>
 
-          parent ! Command(printerDateTime)
+          parent ! Command(PrinterDateTime())
         case ":multi" => implicit val timeout = Timeout(1 seconds)
 
           val date = LocalDate.now()
           val time = LocalTime.now()
 
           for {
-            out1 <- (parent ? Command(printerDateTime)).mapTo[Option[DreamkasError]]
-            out2 <- parent ? Command(flagState)
-            out3 <- parent ? Command(turnTo(date, time))
+            out1 <- (parent ? Command(PrinterDateTime())).mapTo[Option[DreamkasError]]
+            out2 <- parent ? Command(FlagState())
+            out3 <- parent ? Command(TurnTo(date, time))
           } yield List(out1, out2, out3)
 
         case s => parent ! ConsoleInput(StringWithHexToByte(s))
@@ -81,6 +80,6 @@ object ConsoleReader {
 
   case class ConsoleInput(in: Array[Byte])
 
-  case class Command(commandT: CommandT)
+  case class Command(command: DreamkasCommand)
 
 }
