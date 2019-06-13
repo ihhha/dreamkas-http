@@ -1,6 +1,6 @@
 package models.dreamkas
 
-import models.dreamkas.commands.CommandMainT.ETX
+import models.dreamkas.commands.CommandT.ETX
 import models.dreamkas.errors.DreamkasError._
 import models.dreamkas.errors.{DreamkasError, ErrorWithCode}
 import utils.Logging

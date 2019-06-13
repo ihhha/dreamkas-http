@@ -3,13 +3,14 @@ package models.dreamkas
 import scala.collection.BitSet
 
 import models.dreamkas.DocumentTypeMode._
+import utils.helpers.StringHelper.StringExt
 
 case class DocumentTypeMode(documentType: Int, packet: Boolean, postponePrint: Boolean) {
 
   private val packetBit = if (packet) BitSet(PACKET_BIT) else BitSet.empty
   private val postponePrintBit = if (postponePrint) BitSet(POSTPONE_PRINT) else BitSet.empty
 
-  val bit: String = (BitSet(documentType) ++ packetBit ++ postponePrintBit).toBitMask(0).toString
+  val bit: Array[Byte] = (BitSet(documentType) ++ packetBit ++ postponePrintBit).toBitMask(0).toString.toByteArray
 
 }
 

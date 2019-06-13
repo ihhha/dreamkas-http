@@ -2,7 +2,7 @@ package services
 
 import akka.util.ByteString
 import models.dreamkas.RawResponse
-import models.dreamkas.commands.CommandMainT.{ETX, STX}
+import models.dreamkas.commands.CommandT.{ETX, STX}
 import models.dreamkas.errors.DreamkasError
 import models.dreamkas.errors.DreamkasError._
 

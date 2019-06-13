@@ -14,10 +14,13 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
+import models.api.Cashier
 import models.dreamkas.Password
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
 import models.dreamkas.errors.DreamkasError
+import services.HttpService.TIMEOUT
 import utils.Logging
 
 class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends Logging {
@@ -26,7 +29,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  implicit val timeout: Timeout = Timeout(1.seconds)
+  implicit val timeout: Timeout = Timeout(TIMEOUT.seconds)
 
   implicit def myExceptionHandler: ExceptionHandler =
     ExceptionHandler {
@@ -41,8 +44,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
     get {
       log.info(s"GET Request for TerminalId[$terminalId], command[$command]")
-      implicit val password: Password = ConfigService.getPrinter(s"printer$terminalId")
-        .map(_.password).getOrElse(Password())
+      implicit val password: Password = getPassword(terminalId)
 
       command match {
         case TURN_TO => val date = LocalDate.now()
@@ -52,12 +54,22 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         case FLAG_STATE => success(FlagState())
         case PAPER_CUT => success(PaperCut())
         case REPORT_X => success(ReportX())
-        case REPORT_Z => success(ReportZ())
       }
     } ~
       post {
-        log.info(s"POST request for TerminalId[$terminalId], command[$command]")
-        complete(HttpResponse(NoContent))
+        implicit val password: Password = getPassword(terminalId)
+        command match {
+          case OPEN_SESSION => entity(as[Option[Cashier]]) { cashierO =>
+            log.info(s"POST request for TerminalId[$terminalId], command[$command], cashierName[${cashierO.map(_.name)}]")
+
+            success(OpenSession(cashierO))
+          }
+          case REPORT_Z => entity(as[Option[Cashier]]) { cashierO =>
+            log.info(s"POST request for TerminalId[$terminalId], command[$command], cashierName[${cashierO.map(_.name)}]")
+
+            success(ReportZ(cashierO))
+          }
+        }
       }
   }
 
@@ -66,6 +78,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   ) {
     _.map(_.httpResponse).getOrElse(complete(HttpResponse(NoContent)))
   }
+
+  private def getPassword(terminalId: Int) = ConfigService.getPrinter(s"printer$terminalId")
+    .map(_.password).getOrElse(Password())
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(handler, ConfigService.getHost, ConfigService.getPort)
 
@@ -76,6 +91,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 }
 
 object HttpService {
+  val TIMEOUT = 30
 
   case class Command(cmd: DreamkasCommand)
 

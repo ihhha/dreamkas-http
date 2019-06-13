@@ -1,7 +1,7 @@
 package models.dreamkas
 
 import akka.util.ByteString
-import models.dreamkas.commands.CommandMainT._
+import models.dreamkas.commands.CommandT._
 import models.dreamkas.errors.DreamkasError._
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import services.TerminalService

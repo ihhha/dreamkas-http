@@ -4,5 +4,5 @@ import akka.util.ByteString
 import models.dreamkas.Password
 
 final case class FlagState(implicit val password: Password) extends Command {
-  override def request(packetIndex: Int): ByteString = CommandMain(Command.FLAG_STATE).request(packetIndex)
+  override def request(packetIndex: Int): ByteString = CommandSimple(Command.FLAG_STATE).request(packetIndex)
 }
