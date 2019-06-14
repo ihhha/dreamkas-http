@@ -4,12 +4,17 @@ import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.StandardRoute
-import models.dreamkas.ModelTypes.Code
+import utils.Logging
 
-trait DreamkasError {
+trait DreamkasError extends Logging {
   def message: String
 
   def httpResponse: StandardRoute = complete(HttpResponse(InternalServerError, entity = message))
+
+  def toLog: DreamkasError = {
+    log.error(s"Error: $message")
+    this
+  }
 }
 
 object DreamkasError {

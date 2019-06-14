@@ -82,7 +82,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
-    case Serial.Received(data) => val out = TerminalService.processOut(data, commandIndex)
+    case Serial.Received(data) => val out = TerminalService.processOut(data, commandIndex).map(_.toLog)
       log.info(s"Received data: ${formatData(data)}")
       context become opened(operator)
       sender ! out

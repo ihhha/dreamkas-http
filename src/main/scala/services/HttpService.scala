@@ -51,7 +51,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           val time = LocalTime.now()
           success(TurnTo(date, time))
         case PRINT_DATETIME => success(PrinterDateTime())
-        case FLAG_STATE => success(FlagState())
+        case FLAG_STATE => success(DocumentCancel())
         case PAPER_CUT => success(PaperCut())
         case REPORT_X => success(ReportX())
       }

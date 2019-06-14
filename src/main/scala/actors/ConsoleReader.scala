@@ -8,9 +8,11 @@ import scala.io.StdIn
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import models.dreamkas.Password
-import models.dreamkas.commands.{FlagState, PrinterDateTime, PaperCut, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
+import models.TaxMode
+import models.api.Cashier
+import models.dreamkas.commands.{DocumentCancel, DocumentClose, DocumentOpen, DocumentPrint, PaperCut, PrinterDateTime, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
 import models.dreamkas.errors.DreamkasError
+import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
 
 class ConsoleReader extends Actor {
 
@@ -35,13 +37,27 @@ class ConsoleReader extends Actor {
           parent ! Command(SetDateTime(date, time))
         case ":status" =>
 
-          parent ! Command(FlagState())
-        case ":z" =>
+          parent ! Command(DocumentCancel())
+        case ":z" => parent ! Command(ReportZ())
+        case ":x" => parent ! Command(PaperCut())
+        case ":docin" => parent ! Command(
+          DocumentOpen(
+            mode = DocumentTypeMode(DocumentTypeMode.SERVICE_DOCUMENT),
+            cashier = Some(Cashier("Иванов М.Ю.")),
+            number = 1,
+            taxMode = TaxMode.Default
+          )
+        )
+        case ":docout" => parent ! Command(DocumentClose("адрес"))
+        case ":print" => implicit val timeout = Timeout(20 seconds)
+          for {
+            _ <- (parent ? Command(DocumentPrint("маленький текст", Small))).mapTo[Option[DreamkasError]]
+            _ <- (parent ? Command(DocumentPrint("маленький текст, удвоеный", Small, true))).mapTo[Option[DreamkasError]]
+            _ <- (parent ? Command(DocumentPrint("Большой текст", Big))).mapTo[Option[DreamkasError]]
+            _ <- (parent ? Command(DocumentPrint("маленький текст удвоенный", Big, true))).mapTo[Option[DreamkasError]]
+          } yield ()
 
-          parent ! Command(ReportZ())
-        case ":x" =>
-
-          parent ! Command(PaperCut())
+        case ":doccancel" => parent ! Command(DocumentCancel())
         case ":printerTime" =>
 
           parent ! Command(PrinterDateTime())
@@ -52,7 +68,7 @@ class ConsoleReader extends Actor {
 
           for {
             out1 <- (parent ? Command(PrinterDateTime())).mapTo[Option[DreamkasError]]
-            out2 <- parent ? Command(FlagState())
+            out2 <- parent ? Command(DocumentCancel())
             out3 <- parent ? Command(TurnTo(date, time))
           } yield List(out1, out2, out3)
 

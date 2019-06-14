@@ -23,7 +23,7 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   ignore should "ignore produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, packetIndex, 48, 48, 3, 50, 54).map(_.toByte)
-    FlagState().request(packetIndex) shouldBe expected
+    DocumentCancel().request(packetIndex) shouldBe expected
   }
 
   "PrinterDateTime" should "produce correct request" in {

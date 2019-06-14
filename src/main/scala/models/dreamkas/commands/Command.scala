@@ -22,5 +22,5 @@ object Command {
   val DOCUMENT_CLOSE = "31"
   val DOCUMENT_CANCEL = "32"
 
-  val PRINT_TEXT = "40"
+  val DOCUMENT_PRINT_TEXT = "40"
 }

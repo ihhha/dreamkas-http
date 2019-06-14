@@ -1,7 +1,6 @@
 import actors.Terminal
 import akka.actor.ActorSystem
 import akka.serial.Serial
-import org.slf4j.LoggerFactory
 import services.{ConfigService, HttpService}
 import utils.Logging
 
@@ -15,8 +14,11 @@ object Main extends App with Logging {
     val system = ActorSystem("akka-serial")
     val terminal = system.actorOf(Terminal(deviceSettings), name = "terminal")
 
-    new HttpService(terminal, None)
+    val http = new HttpService(terminal, None)
 
-    system.registerOnTermination(log.info("Stopped terminal system."))
+    system.registerOnTermination {
+      log.info("Stopped terminal system.")
+      http.unbind
+    }
   }.getOrElse(log.warn("Printer Not Found"))
 }
