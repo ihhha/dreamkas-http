@@ -1,6 +1,6 @@
 package actors
 
-import java.time.{LocalDate, LocalTime}
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import scala.concurrent.duration._
 import scala.io.StdIn
@@ -8,16 +8,22 @@ import scala.io.StdIn
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import models.TaxMode
-import models.api.Cashier
-import models.dreamkas.commands.{DocumentCancel, DocumentClose, DocumentOpen, DocumentPrint, PaperCut, PrinterDateTime, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
-import models.dreamkas.errors.DreamkasError
+import models.DocumentType.Payment
+import models.api.{Cashier, Receipt, Ticket}
+import models.dreamkas.ModelTypes.errorOr
+import models.dreamkas.commands.{DocumentAddPosition, DocumentCancel, DocumentClose, DocumentOpen, DocumentPayment, DocumentPrint, DocumentSubTotal, DocumentTotal, PaperCut, PrinterDateTime, ReportZ, SetDateTime, TurnTo, Command => DreamkasCommand}
 import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
+import models.{PaymentMode, PaymentType, TaxMode}
 
 class ConsoleReader extends Actor {
 
   import ConsoleReader._
   import context._
+
+  val testReceipt = Receipt(
+    Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134),
+    1, TaxMode.Default, 12, None, PaymentType.Cash, PaymentMode.FullPayment, Payment
+  )
 
   def receive = {
     case Read => implicit val password: Password = Password("PIRI")
@@ -28,49 +34,58 @@ class ConsoleReader extends Actor {
           val date = LocalDate.now()
           val time = LocalTime.now()
 
-          parent ! Command(TurnTo(date, time))
+          parent ! Msg(TurnTo(date, time))
         case ":syncDateTime" =>
 
           val date = LocalDate.now()
           val time = LocalTime.now()
 
-          parent ! Command(SetDateTime(date, time))
+          parent ! Msg(SetDateTime(date, time))
         case ":status" =>
 
-          parent ! Command(DocumentCancel())
-        case ":z" => parent ! Command(ReportZ())
-        case ":x" => parent ! Command(PaperCut())
-        case ":docin" => parent ! Command(
+          parent ! Msg(DocumentCancel())
+        case ":z" => parent ! Msg(ReportZ())
+        case ":x" => parent ! Msg(PaperCut())
+        case ":docin" => parent ! Msg(
           DocumentOpen(
-            mode = DocumentTypeMode(DocumentTypeMode.SERVICE_DOCUMENT),
+            mode = DocumentTypeMode(Payment, true),
             cashier = Some(Cashier("Иванов М.Ю.")),
             number = 1,
             taxMode = TaxMode.Default
           )
         )
-        case ":docout" => parent ! Command(DocumentClose("адрес"))
+        case ":docadd" => parent ! MsgNoAnswer(DocumentAddPosition(testReceipt))
+        case ":docout" => parent ! Msg(DocumentClose("адрес"))
         case ":print" => implicit val timeout = Timeout(20 seconds)
-          for {
-            _ <- (parent ? Command(DocumentPrint("маленький текст", Small))).mapTo[Option[DreamkasError]]
-            _ <- (parent ? Command(DocumentPrint("маленький текст, удвоеный", Small, true))).mapTo[Option[DreamkasError]]
-            _ <- (parent ? Command(DocumentPrint("Большой текст", Big))).mapTo[Option[DreamkasError]]
-            _ <- (parent ? Command(DocumentPrint("маленький текст удвоенный", Big, true))).mapTo[Option[DreamkasError]]
-          } yield ()
+          parent ! MsgNoAnswer(DocumentPrint("маленький текст", Small))
+          parent ! MsgNoAnswer(DocumentPrint("маленький текст, удвоеный", Small, true))
+          parent ! MsgNoAnswer(DocumentPrint("Большой текст", Big))
+          parent ! MsgNoAnswer(DocumentPrint("маленький текст удвоенный", Big, true))
+        case ":docsubtotal" => parent ! MsgNoAnswer(DocumentSubTotal())
+        case ":docpayment" => parent ! MsgNoAnswer(DocumentPayment(testReceipt))
 
-        case ":doccancel" => parent ! Command(DocumentCancel())
+        case ":doccancel" => parent ! Msg(DocumentCancel())
+        case ":docsummary" => parent ! Msg(DocumentTotal(10000))
+
         case ":printerTime" =>
 
-          parent ! Command(PrinterDateTime())
-        case ":multi" => implicit val timeout = Timeout(1 seconds)
-
-          val date = LocalDate.now()
-          val time = LocalTime.now()
-
+          parent ! Msg(PrinterDateTime())
+        case ":receipt" => implicit val timeout = Timeout(30 seconds)
           for {
-            out1 <- (parent ? Command(PrinterDateTime())).mapTo[Option[DreamkasError]]
-            out2 <- parent ? Command(DocumentCancel())
-            out3 <- parent ? Command(TurnTo(date, time))
-          } yield List(out1, out2, out3)
+            _ <- (parent ? Msg(
+              DocumentOpen(
+                mode = DocumentTypeMode(Payment, true),
+                cashier = Some(Cashier("Иванов М.Ю.")),
+                number = 1,
+                taxMode = TaxMode.Default
+              )
+            )).mapTo[errorOr]
+            _ = parent ! MsgNoAnswer(DocumentAddPosition(testReceipt))
+            _ = parent ! MsgNoAnswer(DocumentSubTotal())
+            _ = parent ! MsgNoAnswer(DocumentSubTotal())
+            _ = parent ! MsgNoAnswer(DocumentPayment(testReceipt))
+            _ <- (parent ? Msg(DocumentClose())).mapTo[errorOr]
+          } yield ()
 
         case s => parent ! ConsoleInput(StringWithHexToByte(s))
       }
@@ -96,6 +111,8 @@ object ConsoleReader {
 
   case class ConsoleInput(in: Array[Byte])
 
-  case class Command(command: DreamkasCommand)
+  case class Msg(command: DreamkasCommand)
+
+  case class MsgNoAnswer(command: DreamkasCommand)
 
 }

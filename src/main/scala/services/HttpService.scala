@@ -15,12 +15,13 @@ import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
-import models.api.Cashier
-import models.dreamkas.Password
+import models.DocumentType.Payment
+import models.api.{Cashier, Receipt}
+import models.dreamkas.ModelTypes.errorOr
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
-import models.dreamkas.errors.DreamkasError
-import services.HttpService.TIMEOUT
+import models.dreamkas.{DocumentTypeMode, Password}
+import services.HttpService.{ErrorOrOk, Msg, MsgNoAnswer, TIMEOUT}
 import utils.Logging
 
 class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends Logging {
@@ -43,17 +44,18 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
     get {
+      val printer = printer1
       log.info(s"GET Request for TerminalId[$terminalId], command[$command]")
       implicit val password: Password = getPassword(terminalId)
 
       command match {
         case TURN_TO => val date = LocalDate.now()
           val time = LocalTime.now()
-          success(TurnTo(date, time))
-        case PRINT_DATETIME => success(PrinterDateTime())
-        case FLAG_STATE => success(DocumentCancel())
-        case PAPER_CUT => success(PaperCut())
-        case REPORT_X => success(ReportX())
+          success(printer, TurnTo(date, time))
+        case PRINT_DATETIME => success(printer, PrinterDateTime())
+        case FLAG_STATE => success(printer, DocumentCancel())
+        case PAPER_CUT => success(printer, PaperCut())
+        case REPORT_X => success(printer, ReportX())
       }
     } ~
       post {
@@ -62,22 +64,51 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           case OPEN_SESSION => entity(as[Option[Cashier]]) { cashierO =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], cashierName[${cashierO.map(_.name)}]")
 
-            success(OpenSession(cashierO))
+            success(
+              askPrinter(
+                printer1, Msg(OpenSession(cashierO))
+              )
+            )
           }
           case REPORT_Z => entity(as[Option[Cashier]]) { cashierO =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], cashierName[${cashierO.map(_.name)}]")
 
-            success(ReportZ(cashierO))
+            success(
+              askPrinter(
+                printer1, Msg(ReportZ(cashierO))
+              )
+            )
+          }
+          case RECEIPT => entity(as[Receipt]) { receipt =>
+            log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
+            successReceipt(receipt, printer1)
           }
         }
       }
   }
 
-  private def success(cmd: DreamkasCommand): Route = onSuccess(
-    (printer1 ? HttpService.Command(cmd)).mapTo[Option[DreamkasError]]
-  ) {
-    _.map(_.httpResponse).getOrElse(complete(HttpResponse(NoContent)))
-  }
+  private def askPrinter(printer: ActorRef, command: Msg): Future[errorOr] =
+    (printer1 ? command).mapTo[errorOr]
+
+  private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+    for {
+      _ <- askPrinter(printer, Msg(DocumentOpen(
+        mode = DocumentTypeMode(Payment, packet = true),
+        cashier = receipt.cashier,
+        number = receipt.checkId,
+        taxMode = receipt.taxMode
+      )))
+      _ = printer ! MsgNoAnswer(DocumentAddPosition(receipt))
+      _ = printer ! MsgNoAnswer(DocumentSubTotal())
+      _ = printer ! MsgNoAnswer(DocumentSubTotal())
+      _ = printer ! MsgNoAnswer(DocumentPayment(receipt))
+      response <- askPrinter(printer, Msg(DocumentClose()))
+    } yield response
+  }(_.toResponse)
+
+  private def success(printer: ActorRef, cmd: DreamkasCommand): Route = success(askPrinter(printer, Msg(cmd)))
+
+  private def success(magnet: Future[errorOr]): Route = onSuccess(magnet)(_.toResponse)
 
   private def getPassword(terminalId: Int) = ConfigService.getPrinter(s"printer$terminalId")
     .map(_.password).getOrElse(Password())
@@ -91,8 +122,17 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 }
 
 object HttpService {
+
+  implicit class ErrorOrOk(errorOr: errorOr) {
+
+    def toResponse: Route = errorOr.fold(_.httpResponse, _ => complete(HttpResponse(NoContent)))
+
+  }
+
   val TIMEOUT = 30
 
-  case class Command(cmd: DreamkasCommand)
+  case class Msg(cmd: DreamkasCommand)
+
+  case class MsgNoAnswer(cmd: DreamkasCommand)
 
 }

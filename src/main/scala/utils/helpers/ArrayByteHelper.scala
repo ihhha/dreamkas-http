@@ -1,6 +1,6 @@
 package utils.helpers
 
-import utils.helpers.IntHelper._
+import utils.helpers.NumericHelper._
 
 object ArrayByteHelper {
 

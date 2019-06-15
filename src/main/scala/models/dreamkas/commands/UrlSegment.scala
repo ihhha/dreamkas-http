@@ -2,6 +2,8 @@ package models.dreamkas.commands
 
 object UrlSegment {
   val DOCUMENT_OPEN = "document_open"
+  val RECEIPT = "receipt"
+
   val OPEN_SESSION = "open_session"
   val PAPER_CUT = "paper_cut"
   val PRINT_DATETIME = "print_datetime"

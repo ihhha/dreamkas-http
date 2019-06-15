@@ -6,10 +6,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated, Timers, act
 import akka.io.IO
 import akka.serial.Serial
 import akka.util.ByteString
-import models.dreamkas.errors.DreamkasError.NoPrinterConnected
+import models.dreamkas.errors.DreamkasError.{NoEtxFound, NoPrinterConnected}
 import models.dreamkas.{DeviceSettings, Password}
 import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
+import cats.syntax.either._
 
 class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging with Timers {
 
@@ -49,7 +50,8 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       context become opened(operator)
       context watch operator
       reader ! ConsoleReader.Read
-    case HttpService.Command(_) => sender ! Some(NoPrinterConnected)
+    case HttpService.Msg(_) => sender ! NoPrinterConnected.asLeft
+    case HttpService.MsgNoAnswer(_) => sender ! NoPrinterConnected.asLeft
   }
 
   def opened(operator: ActorRef): Receive = {
@@ -67,26 +69,45 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
       reader ! ConsoleReader.Read
 
-    case ConsoleReader.Command(cmd) => val packetIndex = getNextIndex
+    case ConsoleReader.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become waitingResponse(operator, sender, packetIndex)
+      reader ! ConsoleReader.Read
 
-    case HttpService.Command(cmd) => val packetIndex = getNextIndex
+    case ConsoleReader.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become waitingResponse(operator, sender, packetIndex)
+      context become processResponse(operator, sender, packetIndex)
+
+    case HttpService.Msg(cmd) => val packetIndex = getNextIndex
+      val data = cmd.request(packetIndex)
+      operator ! Serial.Write(data, length => Wrote(data.take(length)))
+      context become processResponse(operator, sender, packetIndex)
+
+    case HttpService.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
+      val data = cmd.request(packetIndex)
+      operator ! Serial.Write(data, length => Wrote(data.take(length)))
+
+    case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
   }
 
-  def waitingResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int): Receive = {
+  var response: ByteString = ByteString.empty
+
+  def processResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int): Receive = {
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
-    case Serial.Received(data) => val out = TerminalService.processOut(data, commandIndex).map(_.toLog)
+    case Serial.Received(data) => response = response ++ data
       log.info(s"Received data: ${formatData(data)}")
-      context become opened(operator)
-      sender ! out
-      reader ! ConsoleReader.Read
+      TerminalService.processOut(response, commandIndex) match {
+        case Left(NoEtxFound) =>
+          log.warning("Waiting for ETX")
+        case result => response = ByteString.empty
+          context become opened(operator)
+          sender ! result
+          reader ! ConsoleReader.Read
+      }
+
   }
 
 }

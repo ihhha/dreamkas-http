@@ -3,18 +3,18 @@ package models.dreamkas.commands
 import akka.util.ByteString
 import models.dreamkas.Password
 import utils.helpers.ListHelper.ListStringExtended
-import utils.helpers.StringHelper
+import utils.helpers.StringHelper.EMPTY_STRING
 
 final case class DocumentClose(
-  buyerAddress: String,
+  buyerAddress: String = EMPTY_STRING,
   flags: Int = 0
 )(implicit val password: Password) extends Command {
-  val cutFlag = 0
-  val reserved = StringHelper.EMPTY_STRING
-  val additionalPropsName = StringHelper.EMPTY_STRING
-  val additionalPropsValue = StringHelper.EMPTY_STRING
-  val buyer = StringHelper.EMPTY_STRING
-  val buyerInn = StringHelper.EMPTY_STRING
+  private val cutFlag = 0
+  private val reserved = EMPTY_STRING
+  private val additionalPropsName = EMPTY_STRING
+  private val additionalPropsValue = EMPTY_STRING
+  private val buyer = EMPTY_STRING
+  private val buyerInn = EMPTY_STRING
 
   private val data = List(cutFlag.toString, buyerAddress, flags.toString, reserved, reserved, reserved,
     additionalPropsValue, additionalPropsName, buyer, buyerInn).toDreamkasData

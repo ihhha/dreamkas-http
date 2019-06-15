@@ -21,8 +21,8 @@ class CommandsSpec extends FlatSpec with Matchers {
     TurnTo(date, time).request(packetIndex) shouldBe expected
   }
 
-  ignore should "ignore produce correct request" in {
-    val expected = Array(2, 80, 73, 82, 73, packetIndex, 48, 48, 3, 50, 54).map(_.toByte)
+  "DocumentCancel" should "produce correct request" in {
+    val expected = Array(2, 80, 73, 82, 73, packetIndex, 51, 50, 3, 50, 55).map(_.toByte)
     DocumentCancel().request(packetIndex) shouldBe expected
   }
 

@@ -21,6 +21,9 @@ object Command {
   val DOCUMENT_OPEN = "30"
   val DOCUMENT_CLOSE = "31"
   val DOCUMENT_CANCEL = "32"
-
   val DOCUMENT_PRINT_TEXT = "40"
+  val DOCUMENT_ADD_POSITION = "42"
+  val DOCUMENT_TOTAL = "64"
+  val DOCUMENT_SUB_TOTAL = "44"
+  val DOCUMENT_PAYMENT = "47"
 }

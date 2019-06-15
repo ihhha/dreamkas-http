@@ -1,13 +1,14 @@
 package services
 
 import akka.util.ByteString
+import cats.syntax.either._
 import models.dreamkas.RawResponse
 import models.dreamkas.commands.CommandT.{ETX, STX}
 import models.dreamkas.errors.DreamkasError
 import models.dreamkas.errors.DreamkasError._
 
 object TerminalService {
-  def processOut(data: ByteString, commandIndex: Int): Option[DreamkasError] = {
+  def processOut(data: ByteString, commandIndex: Int): Either[DreamkasError, Unit] = {
     data.toArray match {
       case Array(STX, packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, dataArray@_*) =>
         dataArray.takeRight(3) match {
@@ -16,9 +17,9 @@ object TerminalService {
             RawResponse(
               packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, crc1Byte, crc2Byte, responseData
             ).result(commandIndex)
-          case _ => Some(NoEtxFound)
+          case _ => NoEtxFound.asLeft
         }
-      case _ => Some(UnknownFormat)
+      case _ => UnknownFormat.asLeft
     }
   }
 }

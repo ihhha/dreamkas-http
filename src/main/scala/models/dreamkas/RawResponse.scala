@@ -1,5 +1,6 @@
 package models.dreamkas
 
+import cats.syntax.either._
 import models.dreamkas.commands.CommandT.ETX
 import models.dreamkas.errors.DreamkasError._
 import models.dreamkas.errors.{DreamkasError, ErrorWithCode}
@@ -18,7 +19,7 @@ case class RawResponse(
   dataArray: Array[Byte] = Array.emptyByteArray
 ) extends Logging {
 
-  def result(index: Int): Option[DreamkasError] = {
+  def result(index: Int): Either[DreamkasError, Unit] = {
 
     val codesArray = Array(packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte).map(_.toByte)
     val etxArray = Array(ETX.toByte)
@@ -29,15 +30,15 @@ case class RawResponse(
     if (isCrcCorrect) {
       if (packetIndex == index) {
         (err1Byte, err2Byte).toCode match {
-          case NO_ERROR => None
-          case code => Some(ErrorWithCode(code))
+          case NO_ERROR => ().asRight[DreamkasError]
+          case code => ErrorWithCode(code).asLeft
         }
       } else {
-        Some(WrongPacketIndex)
+        WrongPacketIndex.asLeft
       }
     }
     else {
-      Some(CrcError)
+      CrcError.asLeft
     }
   }
 }
