@@ -12,7 +12,7 @@ final case class DocumentPayment(
   receipt: Receipt
 )(implicit val password: Password) extends Command {
 
-  val amount: Float = (receipt.quantity * receipt.ticket.price).toCents
+  val amount: Float = receipt.amount.toCents
   val text: String = EMPTY_STRING
 
   private val data = PaymentType.toDreamkas(receipt.paymentType).byteArray ++ FSArray ++

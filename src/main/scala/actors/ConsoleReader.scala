@@ -20,8 +20,9 @@ class ConsoleReader extends Actor {
   import ConsoleReader._
   import context._
 
+  val testTicket = Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134)
   val testReceipt = Receipt(
-    Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134),
+    List(testTicket),
     1, TaxMode.Default, 12, None, PaymentType.Cash, PaymentMode.FullPayment, Payment
   )
 
@@ -54,7 +55,10 @@ class ConsoleReader extends Actor {
             taxMode = TaxMode.Default
           )
         )
-        case ":docadd" => parent ! MsgNoAnswer(DocumentAddPosition(testReceipt))
+        case ":docadd" => val taxMode = testReceipt.taxMode
+          val paymentMode = testReceipt.paymentMode
+          testReceipt.tickets
+            .foreach(ticket => parent ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode)))
         case ":docout" => parent ! Msg(DocumentClose("адрес"))
         case ":print" => implicit val timeout = Timeout(20 seconds)
           parent ! MsgNoAnswer(DocumentPrint("маленький текст", Small))
@@ -71,6 +75,8 @@ class ConsoleReader extends Actor {
 
           parent ! Msg(PrinterDateTime())
         case ":receipt" => implicit val timeout = Timeout(30 seconds)
+          val taxMode = testReceipt.taxMode
+          val paymentMode = testReceipt.paymentMode
           for {
             _ <- (parent ? Msg(
               DocumentOpen(
@@ -80,7 +86,8 @@ class ConsoleReader extends Actor {
                 taxMode = TaxMode.Default
               )
             )).mapTo[errorOr]
-            _ = parent ! MsgNoAnswer(DocumentAddPosition(testReceipt))
+            _ = testReceipt.tickets
+              .foreach(ticket => parent ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode)))
             _ = parent ! MsgNoAnswer(DocumentSubTotal())
             _ = parent ! MsgNoAnswer(DocumentSubTotal())
             _ = parent ! MsgNoAnswer(DocumentPayment(testReceipt))

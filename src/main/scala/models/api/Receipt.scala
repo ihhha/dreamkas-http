@@ -7,7 +7,7 @@ import models.PaymentType.PaymentType
 import models.TaxMode.TaxMode
 
 case class Receipt(
-  ticket: Ticket,
+  tickets: List[Ticket],
   quantity: Int,
   taxMode: TaxMode,
   checkId: Int,
@@ -15,7 +15,14 @@ case class Receipt(
   paymentType: PaymentType,
   paymentMode: PaymentMode,
   documentType: DocumentType
-)
+) {
+  val amount: Long = {
+    val (amount, totalDiscount) = tickets.foldLeft((0L, 0L)) {
+      case ((currAmount, currTotalDiscount), ticket) => (currAmount + ticket.price, currTotalDiscount + ticket.discount)
+    }
+    amount - totalDiscount
+  }
+}
 
 trait ReceiptJson {
   implicit val reads: Reads[Receipt] = Json.reads[Receipt]

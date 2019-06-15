@@ -14,8 +14,10 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   implicit val password: Password = Password("PIRI")
 
+  val ticket1 = Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134)
+  val ticket2 = Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "12", "3", 17, "АА", 123134)
   val testReceipt = Receipt(
-    Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134),
+    List(ticket1, ticket2),
     1, TaxMode.Default, 12, Some(Cashier(name = "Иванов А.О.")), PaymentType.Cash, PaymentMode.FullPayment, Payment
   )
 
@@ -52,7 +54,7 @@ class CommandsSpec extends FlatSpec with Matchers {
   "DocumentAddPosition" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, -116, -31, -30, -88, -30, -91, -85, -88, 28, 28, 49, 28, 49,
       48, 48, 46, 48, 28, 48, 28, 48, 46, 48, 28, 52, 28, 52, 3, 53, 70).map(_.toByte)
-    DocumentAddPosition(testReceipt).request(packetIndex) shouldBe expected
+    DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode).request(packetIndex) shouldBe expected
   }
 
   "DocumentSubtotal" should "produce correct request" in {
@@ -61,7 +63,8 @@ class CommandsSpec extends FlatSpec with Matchers {
   }
 
   "DocumentPayment" should "produce correct request" in {
-    val expected = Array(2, 80, 73, 82, 73, 39, 52, 55, 48, 28, 49, 48, 48, 46, 48, 28, 3, 51, 65).map(_.toByte)
+    val expected = Array(2, 80, 73, 82, 73, 39, 52, 55, 48, 28, 50, 48, 48, 46, 48, 28, 3, 51, 57)
+      .map(_.toByte)
     DocumentPayment(testReceipt).request(packetIndex) shouldBe expected
   }
 

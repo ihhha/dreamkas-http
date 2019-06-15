@@ -91,6 +91,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     (printer1 ? command).mapTo[errorOr]
 
   private def successPayment(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+    val taxMode = receipt.taxMode
+    val paymentMode = receipt.paymentMode
+
     for {
       _ <- askPrinter(printer, Msg(DocumentOpen(
         mode = DocumentTypeMode(Payment, packet = true),
@@ -98,7 +101,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         number = receipt.checkId,
         taxMode = receipt.taxMode
       )))
-      _ = printer ! MsgNoAnswer(DocumentAddPosition(receipt))
+      _ = receipt.tickets.foreach { ticket => printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode)) }
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentPayment(receipt))
