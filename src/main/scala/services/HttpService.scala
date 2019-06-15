@@ -81,7 +81,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           }
           case RECEIPT => entity(as[Receipt]) { receipt =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
-            successReceipt(receipt, printer1)
+            successPayment(receipt, printer1)
           }
         }
       }
@@ -90,7 +90,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   private def askPrinter(printer: ActorRef, command: Msg): Future[errorOr] =
     (printer1 ? command).mapTo[errorOr]
 
-  private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+  private def successPayment(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
     for {
       _ <- askPrinter(printer, Msg(DocumentOpen(
         mode = DocumentTypeMode(Payment, packet = true),
