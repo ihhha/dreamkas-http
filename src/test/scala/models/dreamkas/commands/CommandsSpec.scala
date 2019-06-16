@@ -1,5 +1,6 @@
 package models.dreamkas.commands
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import models.DocumentType.{Payment, Refund}
@@ -14,8 +15,10 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   implicit val password: Password = Password("PIRI")
 
-  val ticket1 = Ticket("Мстители", LocalDateTime.now(), 10000L, None, "10", "2", 16, "АА", 123134)
-  val ticket2 = Ticket("Мстители", LocalDateTime.now(), 10000L, None, "12", "3", 17, "АА", 123134)
+  val perfDateTime = LocalDateTime.parse("2019-07-07 10:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+
+  val ticket1 = Ticket("Мстители", perfDateTime, 10000L, None, "Зал 5", "10", "2", 16, "АА", 123134)
+  val ticket2 = Ticket("Мстители", perfDateTime, 10000L, None, "Зал 5", "12", "3", 17, "АА", 123134)
   val testReceipt = Receipt(
     List(ticket1, ticket2),
     1, TaxMode.Default, 12, Some(Cashier(name = "Иванов А.О.")), PaymentType.Cash, PaymentMode.FullPayment, Payment
@@ -61,8 +64,9 @@ class CommandsSpec extends FlatSpec with Matchers {
   }
 
   "DocumentAddPosition" should "produce correct request" in {
-    val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, -116, -31, -30, -88, -30, -91, -85, -88, 28, 16, 16, 49, 50,
-      51, 49, 51, 52, 28, 49, 28, 49, 48, 48, 46, 48, 28, 48, 28, 28, 28, 28, 28, 52, 28, 52, 3, 54, 66).map(_.toByte)
+    val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, 48, 55, 45, 48, 55, 45, 49, 57, 32, 49, 48, 58, 48, 48, 32, 91,
+      -121, -96, -85, 32, 53, 93, 32, -116, -31, -30, -88, -30, -91, -85, -88, 28, 16, 16, 49, 50, 51, 49, 51, 52, 28,
+      49, 28, 49, 48, 48, 46, 48, 28, 48, 28, 28, 28, 28, 28, 28, 52, 28, 52, 3, 70, 66).map(_.toByte)
     DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode).request(packetIndex) shouldBe expected
   }
 

@@ -1,5 +1,7 @@
 package models.dreamkas.commands
 
+import java.time.format.DateTimeFormatter
+
 import akka.util.ByteString
 import models.GoodPropAttribute.ServiceDescirption
 import models.PaymentMode.PaymentMode
@@ -17,11 +19,12 @@ final case class DocumentAddPosition(
   paymentMode: PaymentMode,
   quantity: Int = 1
 )(implicit val password: Password) extends Command {
-  private val name: String = ticket.showName.take(56)
+
+  private val name: String = s"${ticket.perfDate} ${ticket.perfTime} [${ticket.hall}] ${ticket.showName}".take(56)
   private val barCode: String = s"${ticket.series}${ticket.number}".take(18)
   private val price: Float = ticket.price.toCents
   private val discountType = if (ticket.discount.isEmpty) Array.emptyByteArray else "2".toByteArray
-  private val discount: Option[Float] = ticket.discount.map(_.toCents)
+  private val discount: Option[Float] = ticket.discount.map(_.amount.toCents)
 
   private val data = name.toCp866Bytes ++ FSArray ++
     barCode.toByteArray ++ FSArray ++
@@ -30,7 +33,7 @@ final case class DocumentAddPosition(
     TaxMode.toDreamkas(taxMode).toByteArray ++ FSArray ++
     FSArray ++
     FSArray ++
-    discountType ++
+    discountType ++ FSArray ++
     FSArray ++
     discount.map(_.byteArray ++ FSArray).getOrElse(FSArray) ++
     PaymentMode.toDreamkas(paymentMode).toByteArray ++ FSArray ++

@@ -81,7 +81,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           }
           case RECEIPT => entity(as[Receipt]) { receipt =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
-            successPayment(receipt, printer1)
+            successReceipt(receipt, printer1)
           }
         }
       }
@@ -90,18 +90,20 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   private def askPrinter(printer: ActorRef, command: Msg): Future[ErrorOr] =
     (printer1 ? command).mapTo[ErrorOr]
 
-  private def successPayment(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+  private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
     val taxMode = receipt.taxMode
     val paymentMode = receipt.paymentMode
 
     for {
       _ <- askPrinter(printer, Msg(DocumentOpen(
-        typeMode = DocumentTypeMode(Payment, packet = true),
+        typeMode = DocumentTypeMode(receipt.documentType, packet = true),
         cashier = receipt.cashier,
         number = receipt.checkId,
         taxMode = receipt.taxMode
       )))
-      _ = receipt.tickets.foreach { ticket => printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode)) }
+      _ = receipt.tickets.foreach { ticket =>
+        printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode))
+      }
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentPayment(receipt))

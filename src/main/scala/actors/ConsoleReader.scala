@@ -23,7 +23,7 @@ class ConsoleReader extends Actor {
 
   implicit val timeout: Timeout = Timeout(TIMEOUT.seconds)
 
-  val testTicket = Ticket("Мстители", LocalDateTime.now(), 10000L, None, "10", "2", 16, "АА", 123134)
+  val testTicket = Ticket("Мстители", LocalDateTime.now(), 10000L, None,"Зал 5", "10", "2", 16, "АА", 123134)
   val testReceipt = Receipt(
     List(testTicket),
     1, TaxMode.Default, 12, None, PaymentType.Cash, PaymentMode.FullPayment, Payment

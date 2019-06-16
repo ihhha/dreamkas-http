@@ -18,9 +18,9 @@ case class Receipt(
 ) {
   val amount: Long = {
     val (amount, totalDiscount) = tickets.foldLeft((0L, 0L)) {
-      case ((currAmount, currTotalDiscount), ticket) => (currAmount + ticket.price, currTotalDiscount + ticket.discount.getOrElse(0L))
+      case ((currAmount, currTotalDiscount), ticket) => (currAmount + ticket.price, currTotalDiscount + ticket.discount.map(_.amount).getOrElse(0L))
     }
-    amount - totalDiscount
+    amount
   }
 }
 
