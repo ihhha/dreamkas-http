@@ -21,7 +21,12 @@ class CommandsSpec extends FlatSpec with Matchers {
   val ticket2 = Ticket("Мстители", perfDateTime, 10000L, None, "Зал 5", "12", "3", 17, "АА", 123134)
   val testReceipt = Receipt(
     List(ticket1, ticket2),
-    1, TaxMode.Default, 12, Some(Cashier(name = "Иванов А.О.")), PaymentType.Cash, PaymentMode.FullPayment, Payment
+    TaxMode.Default,
+    12,
+    Some(Cashier(name = "Иванов А.О.")),
+    PaymentType.Cash,
+    PaymentMode.FullPayment,
+    Payment
   )
 
   "TurnTo" should "produce correct request" in {

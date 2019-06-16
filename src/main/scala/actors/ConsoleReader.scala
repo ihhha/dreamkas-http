@@ -25,8 +25,7 @@ class ConsoleReader extends Actor {
 
   val testTicket = Ticket("Мстители", LocalDateTime.now(), 10000L, None,"Зал 5", "10", "2", 16, "АА", 123134)
   val testReceipt = Receipt(
-    List(testTicket),
-    1, TaxMode.Default, 12, None, PaymentType.Cash, PaymentMode.FullPayment, Payment
+    List(testTicket), TaxMode.Default, 12, None, PaymentType.Cash, PaymentMode.FullPayment, Payment
   )
 
   def receive = {

@@ -8,7 +8,6 @@ import models.TaxMode.TaxMode
 
 case class Receipt(
   tickets: List[Ticket],
-  quantity: Int,
   taxMode: TaxMode,
   checkId: Int,
   cashier: Option[Cashier],
