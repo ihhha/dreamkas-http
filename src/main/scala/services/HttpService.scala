@@ -14,13 +14,15 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import cats.syntax.either._
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
-import models.DocumentType.Payment
-import models.api.{Cashier, Receipt}
+import models.DocumentType.{Refund, Service}
+import models.api.{Cashier, Receipt, Ticket}
 import models.dreamkas.ModelTypes.ErrorOr
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
-import models.dreamkas.{DocumentTypeMode, Password}
+import models.dreamkas.errors.DreamkasError
+import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
 import services.HttpService.{ErrorOrOk, Msg, MsgNoAnswer, TIMEOUT}
 import utils.Logging
 
@@ -81,7 +83,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           }
           case RECEIPT => entity(as[Receipt]) { receipt =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
-            successReceipt(receipt, printer1)
+            withRequestTimeout(1.minute) {
+              successReceipt(receipt, printer1)
+            }
           }
         }
       }
@@ -91,6 +95,18 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     (printer1 ? command).mapTo[ErrorOr]
 
   private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+    val result: Future[ErrorOr] = if (receipt.documentType == Refund) {
+      printReceipt(receipt, printer)
+    } else {
+      for {
+        receiptResponce <- printReceipt(receipt, printer)
+        _ <- printTickets(receipt.tickets, printer)
+      } yield receiptResponce
+    }
+    result
+  }(_.toResponse)
+
+  private def printReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password) = {
     val taxMode = receipt.taxMode
     val paymentMode = receipt.paymentMode
 
@@ -107,9 +123,35 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentSubTotal())
       _ = printer ! MsgNoAnswer(DocumentPayment(receipt))
-      response <- askPrinter(printer, Msg(DocumentClose()))
-    } yield response
-  }(_.toResponse)
+      receiptResponse <- askPrinter(printer, Msg(DocumentClose()))
+    } yield receiptResponse
+  }
+
+  private def printTickets(tickets: List[Ticket], printer: ActorRef)(implicit password: Password): Future[ErrorOr] = {
+
+    def printTicket(ticket: Ticket): Future[ErrorOr] = {
+      for {
+        _ <- askPrinter(printer, Msg(DocumentOpen(
+          typeMode = DocumentTypeMode(Service, packet = true)
+        )))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"${ticket.hall} ${ticket.perfDate} ${ticket.perfTime}", Big, true))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"+${ticket.ageLimit} ${ticket.showName}", Big))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"Ряд ${ticket.row} Место ${ticket.place}", Big, true))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"пожалуйста, сохраняйте этот бланк до конца сеанса", Small))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"Билет ${ticket.series} ${ticket.number}", Small))
+        ticketResponse <- askPrinter(printer, Msg(DocumentClose()))
+      } yield {
+        ticketResponse.leftMap(_.toLog)
+      }
+    }
+
+    tickets.foldLeft(Future.successful(List.empty[ErrorOr])) { (resF, ticket) =>
+      for {
+        prev <- resF
+        next <- printTicket(ticket)
+      } yield prev :+ next
+    }.map(_.headOption.getOrElse(().asRight[DreamkasError]))
+  }
 
   private def success(printer: ActorRef, cmd: DreamkasCommand): Route = success(askPrinter(printer, Msg(cmd)))
 
