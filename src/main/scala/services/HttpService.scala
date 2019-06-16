@@ -17,7 +17,7 @@ import akka.util.Timeout
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
 import models.DocumentType.Payment
 import models.api.{Cashier, Receipt}
-import models.dreamkas.ModelTypes.errorOr
+import models.dreamkas.ModelTypes.ErrorOr
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
 import models.dreamkas.{DocumentTypeMode, Password}
@@ -87,8 +87,8 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
       }
   }
 
-  private def askPrinter(printer: ActorRef, command: Msg): Future[errorOr] =
-    (printer1 ? command).mapTo[errorOr]
+  private def askPrinter(printer: ActorRef, command: Msg): Future[ErrorOr] =
+    (printer1 ? command).mapTo[ErrorOr]
 
   private def successPayment(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
     val taxMode = receipt.taxMode
@@ -96,7 +96,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 
     for {
       _ <- askPrinter(printer, Msg(DocumentOpen(
-        mode = DocumentTypeMode(Payment, packet = true),
+        typeMode = DocumentTypeMode(Payment, packet = true),
         cashier = receipt.cashier,
         number = receipt.checkId,
         taxMode = receipt.taxMode
@@ -111,7 +111,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 
   private def success(printer: ActorRef, cmd: DreamkasCommand): Route = success(askPrinter(printer, Msg(cmd)))
 
-  private def success(magnet: Future[errorOr]): Route = onSuccess(magnet)(_.toResponse)
+  private def success(magnet: Future[ErrorOr]): Route = onSuccess(magnet)(_.toResponse)
 
   private def getPassword(terminalId: Int) = ConfigService.getPrinter(s"printer$terminalId")
     .map(_.password).getOrElse(Password())
@@ -126,7 +126,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
 
 object HttpService {
 
-  implicit class ErrorOrOk(errorOr: errorOr) {
+  implicit class ErrorOrOk(errorOr: ErrorOr) {
 
     def toResponse: Route = errorOr.fold(_.httpResponse, _ => complete(HttpResponse(NoContent)))
 

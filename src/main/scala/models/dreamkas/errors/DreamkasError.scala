@@ -15,6 +15,8 @@ trait DreamkasError extends Logging {
     log.error(s"Error: $message")
     this
   }
+
+  def dump(): Unit = log.error(s"Error: $message")
 }
 
 object DreamkasError {

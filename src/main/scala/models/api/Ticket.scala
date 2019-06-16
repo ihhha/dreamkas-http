@@ -9,7 +9,7 @@ case class Ticket(
   showName: String,
   performanceDateTime: LocalDateTime,
   price: Long,
-  discount: Long,
+  discount: Option[Long],
   row: String,
   place: String,
   ageLimit: Int,

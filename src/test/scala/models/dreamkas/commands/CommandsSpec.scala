@@ -2,7 +2,7 @@ package models.dreamkas.commands
 
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 
-import models.DocumentType.Payment
+import models.DocumentType.{Payment, Refund}
 import models.api.{Cashier, Receipt, Ticket}
 import models.dreamkas.{DocumentTypeMode, Password}
 import models.{PaymentMode, PaymentType, TaxMode}
@@ -14,8 +14,8 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   implicit val password: Password = Password("PIRI")
 
-  val ticket1 = Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "10", "2", 16, "АА", 123134)
-  val ticket2 = Ticket("Мстители", LocalDateTime.now(), 10000L, 0L, "12", "3", 17, "АА", 123134)
+  val ticket1 = Ticket("Мстители", LocalDateTime.now(), 10000L, None, "10", "2", 16, "АА", 123134)
+  val ticket2 = Ticket("Мстители", LocalDateTime.now(), 10000L, None, "12", "3", 17, "АА", 123134)
   val testReceipt = Receipt(
     List(ticket1, ticket2),
     1, TaxMode.Default, 12, Some(Cashier(name = "Иванов А.О.")), PaymentType.Cash, PaymentMode.FullPayment, Payment
@@ -41,19 +41,28 @@ class CommandsSpec extends FlatSpec with Matchers {
     PrinterDateTime().request(packetIndex) shouldBe expected
   }
 
-  "DocumentOpen" should "produce correct request" in {
+  "DocumentOpen" should "produce correct request(payment)" in {
     val expected = Array(
-      2, 80, 73, 82, 73, 39, 51, 48, 49, 56, 28, 49, 28, 48, -120, -94, -96, -83
-      , -82, -94, 32, -128, 46, -114, 46, 28, 49, 50, 3, 51, 55).map(_.toByte)
-    DocumentOpen(mode = DocumentTypeMode(Payment, packet = true),
+      2, 80, 73, 82, 73, 39, 51, 48, 49, 56, 28, 49, 28, -120, -94, -96, -83, -82, -94, 32, -128, 46, -114, 46, 28, 49,
+      50, 28, 48, 3, 50, 66).map(_.toByte)
+    DocumentOpen(typeMode = DocumentTypeMode(Payment, packet = true),
+      cashier = testReceipt.cashier,
+      number = testReceipt.checkId,
+      taxMode = testReceipt.taxMode).request(packetIndex) shouldBe expected
+  }
+  it should "produce correct request (refund)" in {
+    val expected = Array(
+      2, 80, 73, 82, 73, 39, 51, 48, 49, 57, 28, 49, 28, -120, -94, -96, -83, -82, -94, 32, -128, 46, -114, 46, 28, 49,
+      50, 28, 48, 3, 50, 65).map(_.toByte)
+    DocumentOpen(typeMode = DocumentTypeMode(Refund, packet = true),
       cashier = testReceipt.cashier,
       number = testReceipt.checkId,
       taxMode = testReceipt.taxMode).request(packetIndex) shouldBe expected
   }
 
   "DocumentAddPosition" should "produce correct request" in {
-    val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, -116, -31, -30, -88, -30, -91, -85, -88, 28, 28, 49, 28, 49,
-      48, 48, 46, 48, 28, 48, 28, 48, 46, 48, 28, 52, 28, 52, 3, 53, 70).map(_.toByte)
+    val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, -116, -31, -30, -88, -30, -91, -85, -88, 28, 16, 16, 49, 50,
+      51, 49, 51, 52, 28, 49, 28, 49, 48, 48, 46, 48, 28, 48, 28, 28, 28, 28, 28, 52, 28, 52, 3, 54, 66).map(_.toByte)
     DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode).request(packetIndex) shouldBe expected
   }
 
@@ -70,7 +79,7 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   "DocumentClose" should "produce correct request" in {
     val expected =
-      Array(2, 80, 73, 82, 73, 39, 51, 49, 48, 28, 28, 48, 28, 28, 28, 28, 28, 28, 28, 3, 51, 56).map(_.toByte)
+      Array(2, 80, 73, 82, 73, 39, 51, 49, 48, 28, 3, 48, 56).map(_.toByte)
     DocumentClose().request(packetIndex) shouldBe expected
   }
 

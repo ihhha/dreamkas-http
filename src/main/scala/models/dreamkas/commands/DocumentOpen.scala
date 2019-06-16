@@ -11,18 +11,18 @@ import utils.helpers.NumericHelper.IntExtended
 import utils.helpers.StringHelper.StringExt
 
 final case class DocumentOpen(
-  mode: DocumentTypeMode,
+  typeMode: DocumentTypeMode,
   departmentNum: Int = 1,
   cashier: Option[Cashier],
   number: Int,
   taxMode: TaxMode
 )(implicit val password: Password) extends Command {
 
-  private val data = mode.bitString.toByteArray ++ FSArray ++
+  private val data = typeMode.bitString.toByteArray ++ FSArray ++
     departmentNum.byteArray ++ FSArray ++
-    TaxMode.toDreamkas(taxMode).toByteArray ++
     cashier.map(_.dreamkasData).getOrElse(Array.emptyByteArray) ++ FSArray ++
-    number.byteArray
+    number.byteArray ++ FSArray ++
+    TaxMode.toDreamkas(taxMode).toByteArray
 
   override def request(packetIndex: Int): ByteString = CommandMain(DOCUMENT_OPEN, data).request(packetIndex)
 

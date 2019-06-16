@@ -12,19 +12,27 @@ import utils.helpers.NumericHelper.{FloatExtended, IntExtended, LongExtended}
 import utils.helpers.StringHelper.StringExt
 
 final case class DocumentAddPosition(
-  ticket: Ticket, taxMode: TaxMode, paymentMode: PaymentMode, quantity: Int = 1
+  ticket: Ticket,
+  taxMode: TaxMode,
+  paymentMode: PaymentMode,
+  quantity: Int = 1
 )(implicit val password: Password) extends Command {
-  val name: String = ticket.showName
-  val barCode: String = ""
-  val price: Float = ticket.price.toCents
-  val discount: Float = ticket.discount.toCents
+  private val name: String = ticket.showName.take(56)
+  private val barCode: String = s"${ticket.series}${ticket.number}".take(18)
+  private val price: Float = ticket.price.toCents
+  private val discountType = if (ticket.discount.isEmpty) Array.emptyByteArray else "2".toByteArray
+  private val discount: Option[Float] = ticket.discount.map(_.toCents)
 
   private val data = name.toCp866Bytes ++ FSArray ++
     barCode.toByteArray ++ FSArray ++
     quantity.byteArray ++ FSArray ++
     price.byteArray ++ FSArray ++
     TaxMode.toDreamkas(taxMode).toByteArray ++ FSArray ++
-    discount.byteArray ++ FSArray ++
+    FSArray ++
+    FSArray ++
+    discountType ++
+    FSArray ++
+    discount.map(_.byteArray ++ FSArray).getOrElse(FSArray) ++
     PaymentMode.toDreamkas(paymentMode).toByteArray ++ FSArray ++
     GoodPropAttribute.toDreamkas(ServiceDescirption).toByteArray
 

@@ -6,5 +6,5 @@ object ModelTypes {
   type Crc = Int
   type Code = String
 
-  type errorOr = Either[DreamkasError, Unit]
+  type ErrorOr = Either[DreamkasError, Unit]
 }
