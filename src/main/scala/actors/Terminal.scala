@@ -2,7 +2,7 @@ package actors
 
 import scala.concurrent.duration._
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated, Timers, actorRef2Scala}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers, actorRef2Scala}
 import akka.io.IO
 import akka.serial.Serial
 import akka.util.ByteString
@@ -11,6 +11,7 @@ import models.dreamkas.{DeviceSettings, Password}
 import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
 import cats.syntax.either._
+import models.dreamkas.commands.TurnTo
 
 class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging with Timers {
 
@@ -47,6 +48,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       log.info(s"Port $port is now open.")
       timers.cancel(ReconnectTimer)
       val operator = sender
+      self ! HttpService.Msg(TurnTo())
       context become opened(operator)
       context watch operator
       reader ! ConsoleReader.Read
@@ -56,11 +58,15 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
 
   def opened(operator: ActorRef): Receive = {
     case Serial.Closed => log.info("Operator closed normally, exiting terminal.")
+      operator ! PoisonPill
       context unwatch operator
-      context stop self
+      context become receive
+      self ! Start
 
     case Terminated(`operator`) => log.error("Operator crashed, exiting terminal.")
-      context stop self
+      operator ! PoisonPill
+      context become receive
+      self ! Start
 
     case ConsoleReader.EOT => log.info("Initiating close.")
       operator ! Serial.Close
