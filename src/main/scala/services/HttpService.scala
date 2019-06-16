@@ -22,6 +22,7 @@ import models.dreamkas.ModelTypes.ErrorOr
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
 import models.dreamkas.errors.DreamkasError
+import models.dreamkas.errors.DreamkasError.NoPrinterConnected
 import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
 import services.HttpService.{ErrorOrOk, Msg, MsgNoAnswer, TIMEOUT}
 import utils.Logging
@@ -45,8 +46,16 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     }
 
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
+    terminalId match {
+      case 1 => processFiscal(printer1, command, 1)
+      case 2 => printer2.map(processFiscal(_, command, 2))
+        .getOrElse(NoPrinterConnected.httpResponse)
+      case _ => NoPrinterConnected.httpResponse
+    }
+  }
+
+  private def processFiscal(printer: ActorRef, command: String, terminalId: Int): Route = {
     get {
-      val printer = printer1
       log.info(s"GET Request for TerminalId[$terminalId], command[$command]")
       implicit val password: Password = getPassword(terminalId)
 
