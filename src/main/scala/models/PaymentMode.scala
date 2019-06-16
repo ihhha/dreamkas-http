@@ -7,7 +7,7 @@ object PaymentMode extends CustomEnum {
 
   val FullPrepayment: PaymentMode = Value("full_prepayment")
   val Prepayment: PaymentMode = Value("prepayment")
-  val Advance: PaymentMode = Value("Advance")
+  val Advance: PaymentMode = Value("advance")
   val FullPayment: PaymentMode = Value("full_payment")
   val PartialPayment: PaymentMode = Value("partial_payment")
   val Credit: PaymentMode = Value("credit")
