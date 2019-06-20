@@ -6,12 +6,12 @@ import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated,
 import akka.io.IO
 import akka.serial.Serial
 import akka.util.ByteString
+import cats.syntax.either._
+import models.dreamkas.commands.TurnTo
 import models.dreamkas.errors.DreamkasError.{NoEtxFound, NoPrinterConnected}
 import models.dreamkas.{DeviceSettings, Password}
 import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
-import cats.syntax.either._
-import models.dreamkas.commands.TurnTo
 
 class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging with Timers {
 
@@ -83,12 +83,12 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
     case ConsoleReader.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become processResponse(operator, sender, packetIndex)
+      context become processResponse(operator, sender, packetIndex, cmd.simpleResponse)
 
     case HttpService.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become processResponse(operator, sender, packetIndex)
+      context become processResponse(operator, sender, packetIndex, cmd.simpleResponse)
 
     case HttpService.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
@@ -99,19 +99,26 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
 
   var response: ByteString = ByteString.empty
 
-  def processResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int): Receive = {
+  def processResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int, simpleResponse: Boolean): Receive = {
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
     case Serial.Received(data) => response = response ++ data
       log.info(s"Received data: ${formatData(data)}")
-      TerminalService.processOut(response, commandIndex) match {
-        case Left(NoEtxFound) =>
-          log.warning("Waiting for ETX")
-        case result => response = ByteString.empty
-          context become opened(operator)
-          sender ! result
-          reader ! ConsoleReader.Read
+
+      if (simpleResponse) {
+        context become opened(operator)
+        sender ! TerminalService.processPong(data)
+        reader ! ConsoleReader.Read
+      } else {
+        TerminalService.processOut(response, commandIndex) match {
+          case Left(NoEtxFound) =>
+            log.warning("Waiting for ETX")
+          case result => response = ByteString.empty
+            context become opened(operator)
+            sender ! result
+            reader ! ConsoleReader.Read
+        }
       }
 
   }

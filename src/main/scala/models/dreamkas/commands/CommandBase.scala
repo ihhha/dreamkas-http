@@ -4,9 +4,6 @@ import akka.util.ByteString
 import models.dreamkas.ModelTypes.Code
 import models.dreamkas.Password
 
-trait CommandBase extends CommandT {
-
-  val code: Code
-
+case class CommandBase(code: Code) extends CommandT {
   def request(packetIndex: Int)(implicit password: Password) = ByteString(Array(code.toByte))
 }

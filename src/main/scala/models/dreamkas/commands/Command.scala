@@ -6,9 +6,13 @@ trait Command {
 
   def request(packetIndex: Int): ByteString
 
+  val simpleResponse: Boolean = false
+
 }
 
 object Command {
+  val PING = "05"
+
   val TURN_TO = "10"
   val FLAG_STATE = "00"
   val PRINTER_DATETIME = "13"

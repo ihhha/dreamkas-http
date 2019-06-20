@@ -60,6 +60,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
       implicit val password: Password = getPassword(terminalId)
 
       command match {
+        case PING => success(printer, Ping())
         case TURN_TO => val date = LocalDate.now()
           val time = LocalTime.now()
           success(printer, TurnTo(date, time))

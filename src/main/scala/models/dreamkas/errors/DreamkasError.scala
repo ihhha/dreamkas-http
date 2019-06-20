@@ -25,6 +25,10 @@ object DreamkasError {
     val message = "No printer connected"
   }
 
+  case object PingFailed extends DreamkasError {
+    val message = "Ping failed"
+  }
+
   case object UnknownFormat extends DreamkasError {
     val message = "Failed to parse printer response"
   }
