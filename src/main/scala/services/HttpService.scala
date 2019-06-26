@@ -57,7 +57,6 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     }
   }
 
-
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
     terminalId match {
       case 1 => processFiscal(printer1, command, 1)
@@ -81,6 +80,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         case FLAG_STATE => success(printer, DocumentCancel())
         case PAPER_CUT => success(printer, PaperCut())
         case REPORT_X => success(printer, ReportX())
+        case CANCEL_RECEIPT => success(printer, DocumentCancel())
       }
     } ~
       post {
@@ -142,12 +142,12 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         number = receipt.checkId,
         taxMode = receipt.taxMode
       )))
-      _ = receipt.tickets.foreach { ticket =>
+      _ <- Future.successful(receipt.tickets.foreach { ticket =>
         printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode))
-      }
-      _ = printer ! MsgNoAnswer(DocumentSubTotal())
-      _ = printer ! MsgNoAnswer(DocumentSubTotal())
-      _ = printer ! MsgNoAnswer(DocumentPayment(receipt))
+      })
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal()))
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal()))
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentPayment(receipt)))
       receiptResponse <- askPrinter(printer, Msg(DocumentClose()))
     } yield receiptResponse
   }
