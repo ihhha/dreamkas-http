@@ -107,6 +107,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       log.info(s"Received data: ${formatData(data)}")
 
       if (simpleResponse) {
+        response = ByteString.empty
         context become opened(operator)
         sender ! TerminalService.processPong(data)
         reader ! ConsoleReader.Read

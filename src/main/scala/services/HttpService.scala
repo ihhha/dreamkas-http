@@ -9,6 +9,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives.{onSuccess, _}
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.pattern.{AskTimeoutException, ask}
@@ -45,6 +46,18 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         }
     }
 
+  lazy val optionsRoute: Route = options {
+    respondWithHeaders(
+      RawHeader("Access-Control-Allow-Origin", "*"),
+      RawHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS"),
+      RawHeader("Access-Control-Allow-Headers", "Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token")) {
+      {
+        complete("This is an OPTIONS request.")
+      }
+    }
+  }
+
+
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
     terminalId match {
       case 1 => processFiscal(printer1, command, 1)
@@ -52,7 +65,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         .getOrElse(NoPrinterConnected.httpResponse)
       case _ => NoPrinterConnected.httpResponse
     }
-  }
+  } ~ optionsRoute
 
   private def processFiscal(printer: ActorRef, command: String, terminalId: Int): Route = {
     get {
