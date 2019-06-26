@@ -110,6 +110,12 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
               successReceipt(receipt, printer1)
             }
           }
+          case TICKET => entity(as[Receipt]) { receipt =>
+            log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
+            withRequestTimeout(1.minute) {
+              successTicket(receipt, printer1)
+            }
+          }
         }
       }
   }
@@ -118,15 +124,11 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     (printer1 ? command).mapTo[ErrorOr]
 
   private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
-    val result: Future[ErrorOr] = if (receipt.documentType == Refund) {
-      printReceipt(receipt, printer)
-    } else {
-      for {
-        receiptResponse <- printReceipt(receipt, printer)
-        _ <- printTickets(receipt.tickets, printer)
-      } yield receiptResponse
-    }
-    result
+    printReceipt(receipt, printer)
+  }(_.toResponse)
+
+  private def successTicket(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
+    printTickets(receipt.tickets, printer)
   }(_.toResponse)
 
   private def printReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password) = {

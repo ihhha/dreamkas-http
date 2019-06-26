@@ -3,6 +3,7 @@ package models.dreamkas.commands
 object UrlSegment {
   val DOCUMENT_OPEN = "document_open"
   val RECEIPT = "receipt"
+  val TICKET = "ticket"
 
   val PING = "ping"
 
