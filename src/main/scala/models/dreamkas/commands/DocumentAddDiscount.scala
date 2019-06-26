@@ -11,6 +11,8 @@ final case class DocumentAddDiscount(
   discount: Discount
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val discountType = 1.byteArray
 
   private val data = discountType ++ FSArray ++

@@ -12,6 +12,8 @@ final case class DocumentPayment(
   receipt: Receipt
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   val amount: Float = receipt.amount.toCents
   val text: String = EMPTY_STRING
 

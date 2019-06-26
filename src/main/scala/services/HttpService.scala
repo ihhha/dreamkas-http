@@ -122,9 +122,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
       printReceipt(receipt, printer)
     } else {
       for {
-        receiptResponce <- printReceipt(receipt, printer)
+        receiptResponse <- printReceipt(receipt, printer)
         _ <- printTickets(receipt.tickets, printer)
-      } yield receiptResponce
+      } yield receiptResponse
     }
     result
   }(_.toResponse)

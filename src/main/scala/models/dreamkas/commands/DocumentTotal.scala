@@ -8,6 +8,8 @@ final case class DocumentTotal(
   amount: Long
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val data = amount.byteArray
 
   override def request(packetIndex: Int): ByteString =

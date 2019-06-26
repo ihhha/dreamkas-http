@@ -6,7 +6,7 @@ trait Command {
 
   def request(packetIndex: Int): ByteString
 
-  val simpleResponse: Boolean = false
+  val simpleResponse: Boolean
 
 }
 

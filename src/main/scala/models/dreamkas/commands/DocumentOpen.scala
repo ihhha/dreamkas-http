@@ -19,6 +19,8 @@ final case class DocumentOpen(
   taxMode: TaxMode = Default
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val data = typeMode.bitString.toByteArray ++ FSArray ++
     departmentNum.byteArray ++ FSArray ++
     cashier.map(_.dreamkasData).getOrElse(Array.emptyByteArray) ++ FSArray ++

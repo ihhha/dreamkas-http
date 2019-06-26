@@ -20,6 +20,8 @@ final case class DocumentAddPosition(
   quantity: Int = 1
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val name: String = s"${ticket.perfDate} ${ticket.perfTime} [${ticket.hall}] ${ticket.showName}".take(56)
   private val barCode: String = s"${ticket.series}${ticket.number}".take(18)
   private val price: Float = ticket.price.toCents

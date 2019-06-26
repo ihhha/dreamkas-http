@@ -10,6 +10,8 @@ final case class DocumentClose(
   flags: Int = 0
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val cutFlag = 0
 
   private val data = List(cutFlag.toString, buyerAddress).toDreamkasData

@@ -13,6 +13,8 @@ final case class DocumentPrint(
   doubleTextSize: Boolean = false
 )(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val bitFontSize = BitSet(fontSize.value)
   private val bitDoubleTextSize = if (doubleTextSize) BitSet(4, 5) else BitSet.empty
   private val bitFontString = (bitFontSize ++ bitDoubleTextSize).toBitMask(0).toString

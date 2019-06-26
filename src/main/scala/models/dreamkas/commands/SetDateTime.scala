@@ -9,6 +9,8 @@ import utils.helpers.ListHelper.ListStringExtended
 
 final case class SetDateTime(date: LocalDate, time: LocalTime)(implicit val password: Password) extends Command {
 
+  override val simpleResponse: Boolean = false
+
   private val dataString = DateTimeFormatter.ofPattern("ddMMyy").format(date)
   private val timeString = DateTimeFormatter.ofPattern("HHmmss").format(time)
 
