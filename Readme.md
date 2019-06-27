@@ -4,7 +4,7 @@
 
 ## Запросы
 
-**POST /api/fiscal/:printerId/session_open**   
+**POST /api/fiscal/:printerId/open_session**   
 
 параметры  
 * cashier_name - не обязательный
