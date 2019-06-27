@@ -49,12 +49,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
   lazy val optionsRoute: Route = options {
     respondWithHeaders(
       RawHeader("Access-Control-Allow-Origin", "*"),
-      RawHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS"),
-      RawHeader("Access-Control-Allow-Headers", "Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token")) {
-      {
-        complete("This is an OPTIONS request.")
-      }
-    }
+      RawHeader("Access-Control-Allow-Methods", "*"),
+      RawHeader("Access-Control-Allow-Headers", "*")
+    )(complete("This is an OPTIONS request."))
   }
 
   val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
