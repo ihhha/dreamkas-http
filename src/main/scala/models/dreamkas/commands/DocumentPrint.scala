@@ -10,8 +10,11 @@ import utils.helpers.StringHelper.StringExt
 final case class DocumentPrint(
   text: String,
   fontSize: FontSize,
+  pass: Password,
   doubleTextSize: Boolean = false
-)(implicit val password: Password) extends Command {
+) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

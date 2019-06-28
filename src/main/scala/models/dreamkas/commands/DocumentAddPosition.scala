@@ -1,7 +1,5 @@
 package models.dreamkas.commands
 
-import java.time.format.DateTimeFormatter
-
 import akka.util.ByteString
 import models.GoodPropAttribute.ServiceDescirption
 import models.PaymentMode.PaymentMode
@@ -17,9 +15,11 @@ final case class DocumentAddPosition(
   ticket: Ticket,
   taxMode: TaxMode,
   paymentMode: PaymentMode,
+  pass: Password,
   quantity: Int = 1
-)(implicit val password: Password) extends Command {
+) extends Command {
 
+  implicit val password: Password = pass
   override val simpleResponse: Boolean = false
 
   private val name: String = s"${ticket.perfDate} ${ticket.perfTime} [${ticket.hall}] ${ticket.showName}".take(56)

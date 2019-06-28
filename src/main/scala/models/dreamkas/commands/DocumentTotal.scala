@@ -4,9 +4,9 @@ import akka.util.ByteString
 import models.dreamkas.Password
 import utils.helpers.NumericHelper.FloatExtended
 
-final case class DocumentTotal(
-  amount: Long
-)(implicit val password: Password) extends Command {
+final case class DocumentTotal(amount: Long, pass: Password) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

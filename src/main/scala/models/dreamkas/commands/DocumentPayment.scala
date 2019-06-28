@@ -9,8 +9,10 @@ import utils.helpers.NumericHelper.{FloatExtended, IntExtended, LongExtended}
 import utils.helpers.StringHelper.{EMPTY_STRING, _}
 
 final case class DocumentPayment(
-  receipt: Receipt
-)(implicit val password: Password) extends Command {
+  receipt: Receipt, pass: Password
+) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

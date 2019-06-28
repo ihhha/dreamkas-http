@@ -8,8 +8,10 @@ import models.dreamkas.Password
 import utils.helpers.ListHelper.ListStringExtended
 
 final case class TurnTo(
-  date: LocalDate = LocalDate.now(), time: LocalTime = LocalTime.now()
-)(implicit val password: Password) extends Command {
+  date: LocalDate = LocalDate.now(), time: LocalTime = LocalTime.now(), pass: Password
+) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

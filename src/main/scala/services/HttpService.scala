@@ -12,9 +12,8 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives.{onSuccess, _}
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
-import akka.pattern.{AskTimeoutException, ask}
+import akka.pattern.AskTimeoutException
 import akka.stream.ActorMaterializer
-import akka.util.Timeout
 import cats.syntax.either._
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
 import models.DocumentType.Service
@@ -71,15 +70,15 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
       implicit val password: Password = getPassword(terminalId)
 
       command match {
-        case PING => success(printer, Ping())
+        case PING => success(printer, Ping)
         case TURN_TO => val date = LocalDate.now()
           val time = LocalTime.now()
-          success(printer, TurnTo(date, time))
-        case PRINT_DATETIME => success(printer, PrinterDateTime())
-        case FLAG_STATE => success(printer, DocumentCancel())
-        case PAPER_CUT => success(printer, PaperCut())
-        case REPORT_X => success(printer, ReportX())
-        case CANCEL_RECEIPT => success(printer, DocumentCancel())
+          success(printer, TurnTo(date, time, password))
+        case PRINT_DATETIME => success(printer, PrinterDateTime(password))
+        case FLAG_STATE => success(printer, FlagState(password))
+        case PAPER_CUT => success(printer, PaperCut(password))
+        case REPORT_X => success(printer, ReportX(password))
+        case CANCEL_RECEIPT => success(printer, DocumentCancel(password))
       }
     } ~
       post {
@@ -90,7 +89,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
 
             success(
               askPrinter(
-                printer1, Msg(OpenSession(cashierO))
+                printer1, Msg(OpenSession(password, cashierO))
               )
             )
           }
@@ -99,7 +98,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
 
             success(
               askPrinter(
-                printer1, Msg(ReportZ(cashierO))
+                printer1, Msg(ReportZ(cashierO, password))
               )
             )
           }
@@ -135,15 +134,16 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
         typeMode = DocumentTypeMode(receipt.documentType, packet = true),
         cashier = receipt.cashier,
         number = receipt.checkId,
+        pass = password,
         taxMode = receipt.taxMode
       )))
       _ <- Future.successful(receipt.tickets.foreach { ticket =>
-        printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode))
+        printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode, password))
       })
-      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal()))
-      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal()))
-      _ <- Future.successful(printer ! MsgNoAnswer(DocumentPayment(receipt)))
-      receiptResponse <- askPrinter(printer, Msg(DocumentClose()))
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal(password)))
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal(password)))
+      _ <- Future.successful(printer ! MsgNoAnswer(DocumentPayment(receipt, password)))
+      receiptResponse <- askPrinter(printer, Msg(DocumentClose(password)))
     } yield receiptResponse
   }
 
@@ -152,14 +152,14 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
     def printTicket(ticket: Ticket): Future[ErrorOr] = {
       for {
         _ <- askPrinter(printer, Msg(DocumentOpen(
-          typeMode = DocumentTypeMode(Service, packet = true)
+          typeMode = DocumentTypeMode(Service, packet = true), pass = password
         )))
-        _ = printer ! MsgNoAnswer(DocumentPrint(s"${ticket.hall} ${ticket.perfDate} ${ticket.perfTime}", Big, true))
-        _ = printer ! MsgNoAnswer(DocumentPrint(s"+${ticket.ageLimit} ${ticket.showName}", Big))
-        _ = printer ! MsgNoAnswer(DocumentPrint(s"Ряд ${ticket.row} Место ${ticket.place}", Big, true))
-        _ = printer ! MsgNoAnswer(DocumentPrint(s"пожалуйста, сохраняйте этот бланк до конца сеанса", Small))
-        _ = printer ! MsgNoAnswer(DocumentPrint(s"Билет ${ticket.series} ${ticket.number}", Small))
-        ticketResponse <- askPrinter(printer, Msg(DocumentClose()))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"${ticket.hall} ${ticket.perfDate} ${ticket.perfTime}", Big, password, true))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"+${ticket.ageLimit} ${ticket.showName}", Big, password))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"Ряд ${ticket.row} Место ${ticket.place}", Big, password, true))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"пожалуйста, сохраняйте этот бланк до конца сеанса", Small, password))
+        _ = printer ! MsgNoAnswer(DocumentPrint(s"Билет ${ticket.series} ${ticket.number}", Small, password))
+        ticketResponse <- askPrinter(printer, Msg(DocumentClose(password)))
       } yield {
         ticketResponse.leftMap(_.toLog)
       }

@@ -1,7 +1,5 @@
-scalaVersion := "2.12.8"
+scalaVersion := "2.13.0"
 version := "0.0.1"
-
-scalacOptions += "-Ypartial-unification"
 
 lazy val akkaVersion = "2.5.23"
 lazy val akkaHttpVersion = "10.1.8"

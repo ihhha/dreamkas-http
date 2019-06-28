@@ -4,7 +4,9 @@ import akka.util.ByteString
 import models.api.Cashier
 import models.dreamkas.Password
 
-final case class OpenSession(cashier: Option[Cashier] = None)(implicit val password: Password) extends Command {
+final case class OpenSession(pass: Password, cashier: Option[Cashier] = None) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

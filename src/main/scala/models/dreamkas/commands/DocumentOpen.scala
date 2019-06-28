@@ -2,8 +2,7 @@ package models.dreamkas.commands
 
 import akka.util.ByteString
 import models.TaxMode
-import models.TaxMode.TaxMode
-import models.TaxMode.Default
+import models.TaxMode.{Default, TaxMode}
 import models.api.Cashier
 import models.dreamkas.commands.Command.DOCUMENT_OPEN
 import models.dreamkas.commands.CommandT.FSArray
@@ -12,12 +11,16 @@ import utils.helpers.NumericHelper.IntExtended
 import utils.helpers.StringHelper.StringExt
 
 final case class DocumentOpen(
+  pass: Password,
   typeMode: DocumentTypeMode,
   departmentNum: Int = 1,
   cashier: Option[Cashier] = None,
   number: Int = 0,
   taxMode: TaxMode = Default
-)(implicit val password: Password) extends Command {
+
+) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

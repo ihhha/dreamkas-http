@@ -46,7 +46,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       log.info(s"Port $port is now open.")
       timers.cancel(ReconnectTimer)
       val operator = sender
-      self ! HttpService.Msg(TurnTo())
+      self ! HttpService.Msg(TurnTo(pass = password))
       context become opened(operator)
       context watch operator
     case HttpService.Msg(_) => sender ! NoPrinterConnected.asLeft

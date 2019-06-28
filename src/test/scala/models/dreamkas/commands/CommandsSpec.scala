@@ -13,7 +13,7 @@ class CommandsSpec extends FlatSpec with Matchers {
 
   implicit def packetIndex: Int = 39
 
-  implicit val password: Password = Password("PIRI")
+  val password: Password = Password("PIRI")
 
   val perfDateTime = LocalDateTime.parse("2019-07-07 10:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 
@@ -36,17 +36,17 @@ class CommandsSpec extends FlatSpec with Matchers {
 
     val expected = Array(2, 80, 73, 82, 73, 39, 49, 48, 51, 49, 48, 53, 49, 57, 28, 48, 56, 50, 48, 48, 48, 3, 51, 69)
       .map(_.toByte)
-    TurnTo(date, time).request(packetIndex) shouldBe expected
+    TurnTo(date, time, password).request(packetIndex) shouldBe expected
   }
 
   "DocumentCancel" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, packetIndex, 51, 50, 3, 50, 55).map(_.toByte)
-    DocumentCancel().request(packetIndex) shouldBe expected
+    DocumentCancel(password).request(packetIndex) shouldBe expected
   }
 
   "PrinterDateTime" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 49, 51, 3, 50, 52).map(_.toByte)
-    PrinterDateTime().request(packetIndex) shouldBe expected
+    PrinterDateTime(password).request(packetIndex) shouldBe expected
   }
 
   "DocumentOpen" should "produce correct request(payment)" in {
@@ -56,6 +56,7 @@ class CommandsSpec extends FlatSpec with Matchers {
     DocumentOpen(typeMode = DocumentTypeMode(Payment, packet = true),
       cashier = testReceipt.cashier,
       number = testReceipt.checkId,
+      pass = password,
       taxMode = testReceipt.taxMode).request(packetIndex) shouldBe expected
   }
   it should "produce correct request (refund)" in {
@@ -65,6 +66,7 @@ class CommandsSpec extends FlatSpec with Matchers {
     DocumentOpen(typeMode = DocumentTypeMode(Refund, packet = true),
       cashier = testReceipt.cashier,
       number = testReceipt.checkId,
+      pass = password,
       taxMode = testReceipt.taxMode).request(packetIndex) shouldBe expected
   }
 
@@ -72,24 +74,25 @@ class CommandsSpec extends FlatSpec with Matchers {
     val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, 48, 55, 45, 48, 55, 45, 49, 57, 32, 49, 48, 58, 48, 48, 32, 91,
       -121, -96, -85, 32, 53, 93, 32, -116, -31, -30, -88, -30, -91, -85, -88, 28, 16, 16, 49, 50, 51, 49, 51, 52, 28,
       49, 28, 49, 48, 48, 46, 48, 28, 48, 28, 28, 28, 28, 28, 28, 52, 28, 52, 3, 70, 66).map(_.toByte)
-    DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode).request(packetIndex) shouldBe expected
+    DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode, password)
+      .request(packetIndex) shouldBe expected
   }
 
   "DocumentSubtotal" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 52, 52, 3, 50, 54).map(_.toByte)
-    DocumentSubTotal().request(packetIndex) shouldBe expected
+    DocumentSubTotal(password).request(packetIndex) shouldBe expected
   }
 
   "DocumentPayment" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 52, 55, 48, 28, 50, 48, 48, 46, 48, 28, 3, 51, 57)
       .map(_.toByte)
-    DocumentPayment(testReceipt).request(packetIndex) shouldBe expected
+    DocumentPayment(testReceipt, password).request(packetIndex) shouldBe expected
   }
 
   "DocumentClose" should "produce correct request" in {
     val expected =
       Array(2, 80, 73, 82, 73, 39, 51, 49, 48, 28, 3, 48, 56).map(_.toByte)
-    DocumentClose().request(packetIndex) shouldBe expected
+    DocumentClose(password).request(packetIndex) shouldBe expected
   }
 
 }

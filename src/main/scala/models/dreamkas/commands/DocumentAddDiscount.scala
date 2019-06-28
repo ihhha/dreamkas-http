@@ -8,10 +8,11 @@ import utils.helpers.NumericHelper.{FloatExtended, IntExtended, LongExtended}
 import utils.helpers.StringHelper.StringExt
 
 final case class DocumentAddDiscount(
-  discount: Discount
-)(implicit val password: Password) extends Command {
+  discount: Discount, pass: Password
+) extends Command {
 
   override val simpleResponse: Boolean = false
+  implicit val password: Password = pass
 
   private val discountType = 1.byteArray
 

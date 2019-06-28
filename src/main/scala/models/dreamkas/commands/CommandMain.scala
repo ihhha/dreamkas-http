@@ -11,7 +11,7 @@ case class CommandMain(
   data: Array[Byte]
 ) extends CommandT {
 
-  override def request(packetIndex: Int)(implicit password: Password): ByteString = {
+  def request(packetIndex: Int)(implicit password: Password): ByteString = {
     val msg = (password.bytes :+ packetIndex.toByte) ++ code.map(_.toByte) ++ data :+ ETX.toByte
     val crc = msg.toCrc.map(_.toByte).toArray.takeRight(2)
     ByteString((STX.toByte +: msg) ++ crc)

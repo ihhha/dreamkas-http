@@ -6,9 +6,11 @@ import utils.helpers.ListHelper.ListStringExtended
 import utils.helpers.StringHelper.EMPTY_STRING
 
 final case class DocumentClose(
+  pass: Password,
   buyerAddress: String = EMPTY_STRING,
   flags: Int = 0
-)(implicit val password: Password) extends Command {
+) extends Command {
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

@@ -3,7 +3,9 @@ package models.dreamkas.commands
 import akka.util.ByteString
 import models.dreamkas.Password
 
-final case class FlagState(implicit val password: Password) extends Command {
+final case class FlagState(pass: Password) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 

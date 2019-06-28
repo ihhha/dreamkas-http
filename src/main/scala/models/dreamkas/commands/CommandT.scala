@@ -1,11 +1,6 @@
 package models.dreamkas.commands
 
-import akka.util.ByteString
-import models.dreamkas.Password
-
-trait CommandT {
-  def request(packetIndex: Int)(implicit password: Password): ByteString
-}
+trait CommandT
 
 object CommandT {
   val STX = 0x02

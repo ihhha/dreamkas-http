@@ -7,7 +7,9 @@ import akka.util.ByteString
 import models.dreamkas.Password
 import utils.helpers.ListHelper.ListStringExtended
 
-final case class SetDateTime(date: LocalDate, time: LocalTime)(implicit val password: Password) extends Command {
+final case class SetDateTime(date: LocalDate, time: LocalTime, pass: Password) extends Command {
+
+  implicit val password: Password = pass
 
   override val simpleResponse: Boolean = false
 
