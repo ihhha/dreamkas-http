@@ -5,8 +5,6 @@ import utils.Logging
 
 object Main extends App with Logging {
 
-  log.info("Starting terminal system, enter :q to exit.")
-
   ConfigService.getPrinter("printer1").map { device1Settings =>
 
     log.info(s"deviceSettings: $device1Settings")
@@ -20,11 +18,11 @@ object Main extends App with Logging {
         system.actorOf(Terminal(device2Settings), name = "printer2")
       }
 
-    val http = new HttpService(printer1, printer2)
+    val http = new HttpService(printer1, printer2, ConfigService.getOrigin)
 
     system.registerOnTermination {
       log.info("Stopped terminal system.")
-      http.unbind
+      http.unbind()
     }
-  }.getOrElse(log.warn("Printer Not Found"))
+  }.getOrElse(log.warn("Printer not configured"))
 }

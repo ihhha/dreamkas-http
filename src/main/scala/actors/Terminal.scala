@@ -7,9 +7,9 @@ import akka.io.IO
 import akka.serial.Serial
 import akka.util.ByteString
 import cats.syntax.either._
+import models.dreamkas.{DeviceSettings, Password}
 import models.dreamkas.commands.TurnTo
 import models.dreamkas.errors.DreamkasError.{NoEtxFound, NoPrinterConnected}
-import models.dreamkas.{DeviceSettings, Password}
 import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
 
@@ -18,11 +18,9 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
   import Terminal._
   import context._
 
-  implicit val password: Password = Password("PIRI")
+  implicit val password: Password = deviceSettings.password
 
   timers.startSingleTimer(StartTimer, Start, 2.seconds)
-
-  val reader: ActorRef = actorOf(Props[ConsoleReader])
 
   var currentIndex: Int = 0x1F
 
@@ -51,7 +49,6 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       self ! HttpService.Msg(TurnTo())
       context become opened(operator)
       context watch operator
-      reader ! ConsoleReader.Read
     case HttpService.Msg(_) => sender ! NoPrinterConnected.asLeft
     case HttpService.MsgNoAnswer(_) => sender ! NoPrinterConnected.asLeft
   }
@@ -67,23 +64,6 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       operator ! PoisonPill
       context become receive
       self ! Start
-
-    case ConsoleReader.EOT => log.info("Initiating close.")
-      operator ! Serial.Close
-
-    case ConsoleReader.ConsoleInput(input) => val data = ByteString(input)
-      operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      reader ! ConsoleReader.Read
-
-    case ConsoleReader.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
-      val data = cmd.request(packetIndex)
-      operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      reader ! ConsoleReader.Read
-
-    case ConsoleReader.Msg(cmd) => val packetIndex = getNextIndex
-      val data = cmd.request(packetIndex)
-      operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become processResponse(operator, sender, packetIndex, cmd.simpleResponse)
 
     case HttpService.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
@@ -110,7 +90,6 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
         response = ByteString.empty
         context become opened(operator)
         sender ! TerminalService.processPong(data)
-        reader ! ConsoleReader.Read
       } else {
         TerminalService.processOut(response, commandIndex) match {
           case Left(NoEtxFound) =>
@@ -118,7 +97,6 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
           case result => response = ByteString.empty
             context become opened(operator)
             sender ! result
-            reader ! ConsoleReader.Read
         }
       }
 

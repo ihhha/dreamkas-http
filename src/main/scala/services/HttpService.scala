@@ -17,7 +17,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import cats.syntax.either._
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
-import models.DocumentType.{Refund, Service}
+import models.DocumentType.Service
 import models.api.{Cashier, Receipt, Ticket}
 import models.dreamkas.ModelTypes.ErrorOr
 import models.dreamkas.commands.UrlSegment._
@@ -25,16 +25,16 @@ import models.dreamkas.commands.{Command => DreamkasCommand, _}
 import models.dreamkas.errors.DreamkasError
 import models.dreamkas.errors.DreamkasError.NoPrinterConnected
 import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
-import services.HttpService.{ErrorOrOk, Msg, MsgNoAnswer, TIMEOUT}
+import services.HttpService._
 import utils.Logging
+import utils.helpers.RouteHelper
 
-class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends Logging {
+class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin: String)
+  extends Logging with RouteHelper {
 
   implicit val system: ActorSystem = ActorSystem("http-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-
-  implicit val timeout: Timeout = Timeout(TIMEOUT.seconds)
 
   implicit def myExceptionHandler: ExceptionHandler =
     ExceptionHandler {
@@ -46,24 +46,26 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
         }
     }
 
-  lazy val optionsRoute: Route = options {
-    respondWithHeaders(
-      RawHeader("Access-Control-Allow-Origin", "*"),
-      RawHeader("Access-Control-Allow-Methods", "*"),
-      RawHeader("Access-Control-Allow-Headers", "*")
-    )(complete("This is an OPTIONS request."))
+  val optionsRoute: Route = options(complete(HttpResponse(OK)))
+
+  val handler: Route = respondWithHeaders(
+    RawHeader("Access-Control-Allow-Origin", origin),
+    RawHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET"),
+    RawHeader("Access-Control-Allow-Headers", "Content-type"),
+    RawHeader("Access-Control-Max-Age", "3600")
+  ) {
+    optionsRoute ~
+      path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
+        terminalId match {
+          case 1 => processFiscal(printer1, command, 1)
+          case 2 => printer2.map(processFiscal(_, command, 2))
+            .getOrElse(NoPrinterConnected.httpResponse)
+          case _ => NoPrinterConnected.httpResponse
+        }
+      }
   }
 
-  val handler: Route = path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
-    terminalId match {
-      case 1 => processFiscal(printer1, command, 1)
-      case 2 => printer2.map(processFiscal(_, command, 2))
-        .getOrElse(NoPrinterConnected.httpResponse)
-      case _ => NoPrinterConnected.httpResponse
-    }
-  } ~ optionsRoute
-
-  private def processFiscal(printer: ActorRef, command: String, terminalId: Int): Route = {
+  private def processFiscal(printer: ActorRef, command: String, terminalId: Int): Route =
     get {
       log.info(s"GET Request for TerminalId[$terminalId], command[$command]")
       implicit val password: Password = getPassword(terminalId)
@@ -115,10 +117,6 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
           }
         }
       }
-  }
-
-  private def askPrinter(printer: ActorRef, command: Msg): Future[ErrorOr] =
-    (printer1 ? command).mapTo[ErrorOr]
 
   private def successReceipt(receipt: Receipt, printer: ActorRef)(implicit password: Password): Route = onSuccess {
     printReceipt(receipt, printer)
@@ -175,30 +173,19 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None) extends
     }.map(_.headOption.getOrElse(().asRight[DreamkasError]))
   }
 
-  private def success(printer: ActorRef, cmd: DreamkasCommand): Route = success(askPrinter(printer, Msg(cmd)))
-
-  private def success(magnet: Future[ErrorOr]): Route = onSuccess(magnet)(_.toResponse)
-
+  // todo Remove after move all comands in actor
   private def getPassword(terminalId: Int) = ConfigService.getPrinter(s"printer$terminalId")
     .map(_.password).getOrElse(Password())
 
   val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(handler, ConfigService.getHost, ConfigService.getPort)
 
-  def unbind: Unit = {
+  def unbind(): Unit = {
     bindingFuture.onComplete(_ => system.terminate())
   }
 
 }
 
 object HttpService {
-
-  implicit class ErrorOrOk(errorOr: ErrorOr) {
-
-    def toResponse: Route = errorOr.fold(_.httpResponse, _ => complete(HttpResponse(NoContent)))
-
-  }
-
-  val TIMEOUT = 30
 
   case class Msg(cmd: DreamkasCommand)
 

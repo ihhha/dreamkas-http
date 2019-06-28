@@ -17,7 +17,11 @@ libraryDependencies ++= Seq(
   "de.heikoseeberger" %% "akka-http-play-json" % "1.26.0",
   "com.typesafe.play" %% "play-json" % "2.7.3",
 
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test
+  "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+  "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.19" % Test,
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
+  "org.mockito" % "mockito-core" % "2.23.4" % Test
 )
 
 assemblyJarName in assembly := s"${name.value}-${version.value}.jar"

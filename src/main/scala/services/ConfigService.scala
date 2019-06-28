@@ -33,4 +33,5 @@ object ConfigService extends Logging {
 
   val getHost: String = config.getString("http.host")
   val getPort: Int = config.getInt("http.port")
+  lazy val getOrigin: String = config.getString("cors.origin")
 }
