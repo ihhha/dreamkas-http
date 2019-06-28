@@ -19,7 +19,7 @@ case class RawResponse(
   dataArray: Array[Byte] = Array.emptyByteArray
 ) extends Logging {
 
-  def result(index: Int): Either[DreamkasError, Unit] = {
+  val result: Either[DreamkasError, Unit] = {
 
     val codesArray = Array(packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte).map(_.toByte)
     val etxArray = Array(ETX.toByte)
@@ -28,16 +28,11 @@ case class RawResponse(
       (codesArray ++ dataArray ++ etxArray).toCrc == Array(crc1byte.toByte, crc2byte.toByte).toUtf8String
 
     if (isCrcCorrect) {
-      if (packetIndex == index) {
-        (err1Byte, err2Byte).toCode match {
-          case NO_ERROR => ().asRight[DreamkasError]
-          case code => ErrorWithCode(code).asLeft
-        }
-      } else {
-        WrongPacketIndex.asLeft
+      (err1Byte, err2Byte).toCode match {
+        case NO_ERROR => ().asRight[DreamkasError]
+        case code => ErrorWithCode(code, packetIndex).asLeft
       }
-    }
-    else {
+    } else {
       CrcError.asLeft
     }
   }

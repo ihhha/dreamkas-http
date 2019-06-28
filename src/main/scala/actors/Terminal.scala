@@ -68,7 +68,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
     case HttpService.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data, length => Wrote(data.take(length)))
-      context become processResponse(operator, sender, packetIndex, cmd.simpleResponse)
+      context become processResponse(operator, sender, cmd.simpleResponse)
 
     case HttpService.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
@@ -79,7 +79,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
 
   var response: ByteString = ByteString.empty
 
-  def processResponse(operator: ActorRef, sender: ActorRef, commandIndex: Int, simpleResponse: Boolean): Receive = {
+  def processResponse(operator: ActorRef, sender: ActorRef, simpleResponse: Boolean): Receive = {
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
@@ -91,7 +91,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
         context become opened(operator)
         sender ! TerminalService.processPong(data)
       } else {
-        TerminalService.processOut(response, commandIndex) match {
+        TerminalService.processOut(response) match {
           case Left(NoEtxFound) =>
             log.warning("Waiting for ETX")
           case result => response = ByteString.empty

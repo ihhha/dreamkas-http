@@ -37,15 +37,9 @@ object DreamkasError {
     val message = "Incorrect response end. No ETX found"
   }
 
-  case object WrongPacketIndex extends DreamkasError {
-    val message = "Wrong packet index. Get response to other command"
-  }
-
   case object CrcError extends DreamkasError {
     val message = "Check CRC failed"
   }
-
-  val FunctionUnavailableWithSuchStatus: DreamkasError = ErrorWithCode("01")
 
   val NO_ERROR = "00"
 

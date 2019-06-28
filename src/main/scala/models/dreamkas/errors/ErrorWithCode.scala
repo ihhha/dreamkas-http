@@ -2,7 +2,7 @@ package models.dreamkas.errors
 
 import models.dreamkas.ModelTypes.Code
 
-case class ErrorWithCode(error: Code) extends DreamkasError {
+case class ErrorWithCode(error: Code, commandIndex: Int) extends DreamkasError {
   val msgMap: Map[Code, Code] = Map(
     // Ошибки выполнение команд
     "01" -> "Функция невыполнима при данном статусе ККТ",
@@ -51,6 +51,6 @@ case class ErrorWithCode(error: Code) extends DreamkasError {
     "63" -> "Слишком длинная команда для посылки в ФН"
   )
 
-  val message = msgMap.getOrElse(error, "Unknown error")
+  val message = s"idx[$commandIndex]: ${msgMap.getOrElse(error, "Unknown error")}"
 
 }

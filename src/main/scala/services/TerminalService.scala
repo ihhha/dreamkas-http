@@ -11,7 +11,7 @@ import models.dreamkas.errors.DreamkasError._
 
 object TerminalService {
 
-  def processOut(data: ByteString, commandIndex: Int): ErrorOr = {
+  def processOut(data: ByteString): ErrorOr = {
     data.toArray match {
       case Array(STX, packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, dataArray@_*) =>
         dataArray.takeRight(3) match {
@@ -19,7 +19,7 @@ object TerminalService {
             val responseData = if (dataArray.size == 3) Array.emptyByteArray else dataArray.dropRight(3).toArray
             RawResponse(
               packetIndex, cmd1Byte, cmd2Byte, err1Byte, err2Byte, crc1Byte, crc2Byte, responseData
-            ).result(commandIndex)
+            ).result
           case _ => NoEtxFound.asLeft
         }
       case _ => UnknownFormat.asLeft
