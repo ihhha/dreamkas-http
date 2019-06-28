@@ -1,6 +1,8 @@
 scalaVersion := "2.13.0"
 version := "0.0.1"
 
+maintainer := "NZonov"
+
 lazy val akkaVersion = "2.5.23"
 lazy val akkaHttpVersion = "10.1.8"
 lazy val akkaSerial = "4.1.4"
@@ -24,4 +26,14 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-core" % "2.28.2" % Test
 )
 
-assemblyJarName in assembly := s"${name.value}-${version.value}.jar"
+enablePlugins(UniversalPlugin)
+
+mappings in Universal += {
+  val conf = (resourceDirectory in Compile).value / "application.conf"
+  conf -> "conf/application.conf"
+}
+
+mappings in Universal += {
+  val conf = (resourceDirectory in Compile).value / "logback.xml"
+  conf -> "conf/logback.xml"
+}
