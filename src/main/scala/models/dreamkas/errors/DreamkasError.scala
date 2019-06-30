@@ -21,6 +21,10 @@ trait DreamkasError extends Logging {
 
 object DreamkasError {
 
+  case object NoPrinterConfigured extends DreamkasError {
+    val message = "No printer configured"
+  }
+
   case object NoPrinterConnected extends DreamkasError {
     val message = "No printer connected"
   }

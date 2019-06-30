@@ -22,13 +22,13 @@ import models.dreamkas.ModelTypes.ErrorOr
 import models.dreamkas.commands.UrlSegment._
 import models.dreamkas.commands.{Command => DreamkasCommand, _}
 import models.dreamkas.errors.DreamkasError
-import models.dreamkas.errors.DreamkasError.NoPrinterConnected
+import models.dreamkas.errors.DreamkasError.{NoPrinterConfigured, NoPrinterConnected}
 import models.dreamkas.{Big, DocumentTypeMode, Password, Small}
 import services.HttpService._
 import utils.Logging
 import utils.helpers.RouteHelper
 
-class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin: String)
+class HttpService(firstPrinter: ActorRef, secondPrinterO: Option[ActorRef] = None, origin: String)
   extends Logging with RouteHelper {
 
   implicit val system: ActorSystem = ActorSystem("http-system")
@@ -56,9 +56,9 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
     optionsRoute ~
       path("api" / "fiskal" / IntNumber / Segment) { (terminalId, command) =>
         terminalId match {
-          case 1 => processFiscal(printer1, command, 1)
-          case 2 => printer2.map(processFiscal(_, command, 2))
-            .getOrElse(NoPrinterConnected.httpResponse)
+          case 1 => processFiscal(firstPrinter, command, 1)
+          case 2 => secondPrinterO.map(processFiscal(_, command, 2))
+            .getOrElse(NoPrinterConfigured.httpResponse)
           case _ => NoPrinterConnected.httpResponse
         }
       }
@@ -89,7 +89,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
 
             success(
               askPrinter(
-                printer1, Msg(OpenSession(password, cashierO))
+                printer, Msg(OpenSession(password, cashierO))
               )
             )
           }
@@ -98,20 +98,20 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
 
             success(
               askPrinter(
-                printer1, Msg(ReportZ(cashierO, password))
+                printer, Msg(ReportZ(cashierO, password))
               )
             )
           }
           case RECEIPT => entity(as[Receipt]) { receipt =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
             withRequestTimeout(1.minute) {
-              successReceipt(receipt, printer1)
+              successReceipt(receipt, printer)
             }
           }
           case TICKET => entity(as[Receipt]) { receipt =>
             log.info(s"POST request for TerminalId[$terminalId], command[$command], receipt[$receipt]")
             withRequestTimeout(1.minute) {
-              successTicket(receipt, printer1)
+              successTicket(receipt, printer)
             }
           }
         }
