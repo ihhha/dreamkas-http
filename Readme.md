@@ -7,7 +7,7 @@
 **POST /api/fiscal/:printerId/open_session**   
 
 параметры  
-* cashier_name - не обязательный
+* cashier_name - не обязательный, если не требует принтер
 
 **GET /api/fiscal/:printerId/report_x**   
 
@@ -15,7 +15,7 @@
 
 **POST /api/fiscal/:printerId/report_z**   
 
-* cashier_name - не обязательный
+* cashier_name - не обязательный, если не требует принтер
 
 
 **POST /api/fiskal/1/receipt**
@@ -79,6 +79,13 @@
   * ageLimit - возрастное ограничение
   * series - серия билета(БСО)
   * number - номер билета(БСО)
+  * tax - ставка налога
+    * Nds18 - НДС 18%
+    * Nds10 - НДС 10%
+    * Nds0 - НДС 0%
+    * NoNds - Не облагается НДС
+    * Nds18118 -  НДС 18/118
+    * Nds10110 -  НДС 10/110
   
 ###Cashier кассир
 
@@ -99,7 +106,7 @@
     {
       "showName": "Мстители 3D",
       "performanceDateTime": 1560632400000,
-      "price": 10000,
+      "price": 100,
       "hall": "Зал 1",
       "row": "Балкон 1",
       "discount": {
@@ -109,24 +116,27 @@
       "place": "34",
       "ageLimit": 16,
       "series": "АА",
-      "number": 10
+      "number": 10,
+      "tax": "no_nds"
     },
     {
       "showName": "Мстители 3D",
       "performanceDateTime": 1560632400000,
-      "price": 20000,
+      "price": 1000,
       "hall": "Зал 1",
       "row": "Балкон 1",
       "discount": {
         "name": "Студент",
-        "amount": 5000
+        "amount": 3000
       },
-      "place": "35",
+      "place": "31",
       "ageLimit": 16,
       "series": "АА",
-      "number": 11
+      "number": 10,
+      "tax": "no_nds"
     }
   ],
+  "quantity": 1,
   "taxMode": "default",
   "checkId": 142,
   "cashier": {
@@ -134,7 +144,7 @@
   },
   "paymentType": "cash",
   "paymentMode": "full_prepayment",
-  "documentType": "refund"
+  "documentType": "payment"
 }
 ```
 

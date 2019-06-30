@@ -73,8 +73,8 @@ class CommandsSpec extends FlatSpec with Matchers {
   "DocumentAddPosition" should "produce correct request" in {
     val expected = Array(2, 80, 73, 82, 73, 39, 52, 50, 48, 55, 45, 48, 55, 45, 49, 57, 32, 49, 48, 58, 48, 48, 32, 91,
       -121, -96, -85, 32, 53, 93, 32, -116, -31, -30, -88, -30, -91, -85, -88, 28, 16, 16, 49, 50, 51, 49, 51, 52, 28,
-      49, 28, 49, 48, 48, 46, 48, 28, 48, 28, 28, 28, 28, 28, 28, 52, 28, 52, 3, 70, 66).map(_.toByte)
-    DocumentAddPosition(ticket1, testReceipt.taxMode, testReceipt.paymentMode, password)
+      49, 28, 49, 48, 48, 46, 48, 28, 51, 28, 28, 28, 28, 28, 28, 52, 28, 52, 3, 70, 56).map(_.toByte)
+    DocumentAddPosition(ticket1, ticket1.tax, testReceipt.paymentMode, password)
       .request(packetIndex) shouldBe expected
   }
 

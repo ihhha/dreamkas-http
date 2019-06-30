@@ -3,17 +3,17 @@ package models.dreamkas.commands
 import akka.util.ByteString
 import models.GoodPropAttribute.ServiceDescirption
 import models.PaymentMode.PaymentMode
-import models.TaxMode.TaxMode
+import models.Tax.Tax
 import models.api.Ticket
 import models.dreamkas.Password
 import models.dreamkas.commands.CommandT.FSArray
-import models.{GoodPropAttribute, PaymentMode, TaxMode}
+import models.{GoodPropAttribute, PaymentMode, Tax}
 import utils.helpers.NumericHelper.{FloatExtended, IntExtended, LongExtended}
 import utils.helpers.StringHelper.StringExt
 
 final case class DocumentAddPosition(
   ticket: Ticket,
-  taxMode: TaxMode,
+  tax: Tax,
   paymentMode: PaymentMode,
   pass: Password,
   quantity: Int = 1
@@ -32,7 +32,7 @@ final case class DocumentAddPosition(
     barCode.toByteArray ++ FSArray ++
     quantity.byteArray ++ FSArray ++
     price.byteArray ++ FSArray ++
-    TaxMode.toDreamkas(taxMode).toByteArray ++ FSArray ++
+    Tax.toDreamkas(tax).toByteArray ++ FSArray ++
     FSArray ++
     FSArray ++
     discountType ++ FSArray ++

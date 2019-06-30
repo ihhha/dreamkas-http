@@ -138,7 +138,7 @@ class HttpService(printer1: ActorRef, printer2: Option[ActorRef] = None, origin:
         taxMode = receipt.taxMode
       )))
       _ <- Future.successful(receipt.tickets.foreach { ticket =>
-        printer ! MsgNoAnswer(DocumentAddPosition(ticket, taxMode, paymentMode, password))
+        printer ! MsgNoAnswer(DocumentAddPosition(ticket, ticket.tax, paymentMode, password))
       })
       _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal(password)))
       _ <- Future.successful(printer ! MsgNoAnswer(DocumentSubTotal(password)))

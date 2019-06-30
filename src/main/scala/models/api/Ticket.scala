@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import play.api.libs.json.{Json, Reads}
+import models.Tax.{NoNds, Tax}
 
 case class Ticket(
   showName: String,
@@ -15,7 +16,8 @@ case class Ticket(
   place: String,
   ageLimit: Int,
   series: String,
-  number: Int
+  number: Int,
+  tax: Tax = NoNds
 ) {
   val perfDate = DateTimeFormatter.ofPattern("dd-MM-yy").format(performanceDateTime)
   val perfTime = DateTimeFormatter.ofPattern("HH:mm").format(performanceDateTime)
