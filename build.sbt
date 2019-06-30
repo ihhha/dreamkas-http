@@ -26,6 +26,7 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-core" % "2.28.2" % Test
 )
 
+enablePlugins(JavaAppPackaging)
 enablePlugins(UniversalPlugin)
 
 mappings in Universal += {
