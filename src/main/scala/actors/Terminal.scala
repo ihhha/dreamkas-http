@@ -25,7 +25,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
   var currentIndex: Int = 0x1F
 
   private def getNextIndex: Int = {
-    currentIndex = if (currentIndex > 0xF0 || currentIndex < 0x20) 0x20 else currentIndex + 1
+    currentIndex = if (currentIndex > 0x7E || currentIndex < 0x20) 0x20 else currentIndex + 1
     currentIndex
   }
 
