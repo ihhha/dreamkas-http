@@ -4,12 +4,13 @@ import scala.concurrent.duration._
 
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers, actorRef2Scala}
 import akka.io.IO
-import akka.serial.Serial
 import akka.util.ByteString
 import cats.syntax.either._
-import models.dreamkas.{DeviceSettings, Password}
+import actors.serial.io.Serial
+import actors.serial.io.Serial.{Open, PurgePort}
 import models.dreamkas.commands.TurnTo
 import models.dreamkas.errors.DreamkasError.{NoEtxFound, NoPrinterConnected}
+import models.dreamkas.{DeviceSettings, Password}
 import services.{HttpService, TerminalService}
 import utils.helpers.ArrayByteHelper._
 
@@ -37,8 +38,9 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
     case Start => timers.startPeriodicTimer(ReconnectTimer, OpeningSerial, 30.seconds)
       self ! OpeningSerial
     case OpeningSerial =>
-      log.info(s"Requesting manager to open port: ${deviceSettings.port}, baud: ${deviceSettings.serialSettings.baud}")
-      IO(Serial) ! Serial.Open(deviceSettings.port, deviceSettings.serialSettings)
+      log.info(s"Requesting manager to open port: ${deviceSettings.port}, baud: ${deviceSettings.baud}")
+
+      IO(Serial) ! Open(self, deviceSettings.port, deviceSettings.baud)
 
     case Serial.CommandFailed(cmd, reason) =>
       log.error(s"Connection failed with ${reason.getLocalizedMessage}.")
@@ -46,6 +48,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       log.info(s"Port $port is now open.")
       timers.cancel(ReconnectTimer)
       val operator = sender
+      self ! PurgePort
       self ! HttpService.Msg(TurnTo(pass = password))
       context become opened(operator)
       context watch operator
@@ -67,12 +70,12 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
 
     case HttpService.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
-      operator ! Serial.Write(data, length => Wrote(data.take(length)))
+      operator ! Serial.Write(data)
       context become processResponse(operator, sender, cmd.simpleResponse)
 
     case HttpService.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
-      operator ! Serial.Write(data, length => Wrote(data.take(length)))
+      operator ! Serial.Write(data)
 
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
   }
@@ -114,7 +117,7 @@ object Terminal {
 
   case object OpeningSerial
 
-  case class Wrote(data: ByteString) extends Serial.Event
+  case class Wrote(data: ByteString)
 
   def apply(deviceSettings: DeviceSettings) = Props(classOf[Terminal], deviceSettings)
 
