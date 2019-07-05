@@ -2,12 +2,12 @@ package actors
 
 import scala.concurrent.duration._
 
+import actors.serial.io.Serial
+import actors.serial.io.Serial.Open
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers, actorRef2Scala}
 import akka.io.IO
 import akka.util.ByteString
 import cats.syntax.either._
-import actors.serial.io.Serial
-import actors.serial.io.Serial.{Open, PurgePort}
 import models.dreamkas.commands.TurnTo
 import models.dreamkas.errors.DreamkasError.{NoEtxFound, NoPrinterConnected}
 import models.dreamkas.{DeviceSettings, Password}
@@ -48,7 +48,6 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       log.info(s"Port $port is now open.")
       timers.cancel(ReconnectTimer)
       val operator = sender
-      self ! PurgePort
       self ! HttpService.Msg(TurnTo(pass = password))
       context become opened(operator)
       context watch operator
@@ -71,13 +70,13 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
     case HttpService.Msg(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
       operator ! Serial.Write(data)
+      log.info(s"[Cmd:Answer] data: ${formatData(data)}")
       context become processResponse(operator, sender, cmd.simpleResponse)
 
     case HttpService.MsgNoAnswer(cmd) => val packetIndex = getNextIndex
       val data = cmd.request(packetIndex)
+      log.info(s"[SimpleCmd] data: ${formatData(data)}")
       operator ! Serial.Write(data)
-
-    case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
   }
 
   var response: ByteString = ByteString.empty
@@ -87,7 +86,7 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
     case Terminal.Wrote(data) => log.info(s"Wrote data: ${formatData(data)}")
 
     case Serial.Received(data) => response = response ++ data
-      log.info(s"Received data: ${formatData(data)}")
+      log.info(s"[Received]: ${formatData(data)}")
 
       if (simpleResponse) {
         response = ByteString.empty
@@ -96,13 +95,13 @@ class Terminal(deviceSettings: DeviceSettings) extends Actor with ActorLogging w
       } else {
         TerminalService.processOut(response) match {
           case Left(NoEtxFound) =>
-            log.warning("Waiting for ETX")
+            log.info("Waiting for ETX")
           case result => response = ByteString.empty
+            result.leftMap(_.toLog)
             context become opened(operator)
             sender ! result
         }
       }
-
   }
 
 }

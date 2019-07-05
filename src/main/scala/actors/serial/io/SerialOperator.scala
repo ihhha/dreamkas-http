@@ -1,32 +1,58 @@
 package actors.serial.io
 
-import akka.actor._
-import akka.util.ByteStringBuilder
 import actors.serial.io.Serial._
-import jssc.{SerialPort, SerialPortEvent, SerialPortEventListener}
+import akka.actor._
+import akka.util.ByteString
+import com.fazecast.jSerialComm.SerialPort
 
-private[io] class SerialOperator(port: SerialPort, handler: ActorRef) extends Actor {
+private[io] class SerialOperator(port: SerialPort, handler: ActorRef) extends Actor with ActorLogging {
+
   private case class DataAvailable(count: Int)
 
-  context.watch(handler)
+  case class ReaderDied(ex: Throwable)
 
-  handler ! Opened(port.getPortName)
+  object Reader extends Thread {
 
-  override def preStart: Unit = {
-    val toNotify = self
-    port.addEventListener(new SerialPortEventListener() {
-      override def serialEvent(event: SerialPortEvent) {
-        event.getEventType match {
-          case SerialPortEvent.RXCHAR => toNotify ! DataAvailable(event.getEventValue)
-          case _ =>
+    def loop(): Unit = {
+      var stop = false
+      while (port.isOpen && !stop) {
+        try {
+          val available = port.bytesAvailable
+
+          if (available > 0) {
+            val readBuffer = new Array[Byte](available)
+
+            port.readBytes(readBuffer, readBuffer.length)
+
+            val data = ByteString.fromArray(readBuffer)
+
+            handler.tell(Serial.Received(data), self)
+          }
+        } catch {
+          //stop and tell operator on other exception
+          case ex: Exception =>
+            stop = true
+            self.tell(ReaderDied(ex), Actor.noSender)
         }
       }
-    })
+    }
+
+    override def run() {
+      this.setName(s"serial-reader(${port.getSystemPortName})")
+      loop()
+    }
+
+  }
+
+  override def preStart() = {
+    context watch handler
+    handler ! Serial.Opened(port.getSystemPortName)
+    Reader.start()
   }
 
   override def postStop: Unit = {
     handler ! Closed
-    if (port.isOpened)
+    if (port.isOpen)
       port.closePort()
   }
 
@@ -36,30 +62,12 @@ private[io] class SerialOperator(port: SerialPort, handler: ActorRef) extends Ac
       if (sender != handler) sender ! Closed
       context.stop(self)
 
-    case PurgePort =>
-      port.purgePort(SerialPort.PURGE_TXCLEAR)
+    case Write(data) => port.writeBytes(data.toArray, data.size)
 
-    case Write(data, ack) =>
-      port.writeBytes(data.toArray)
-      if (ack != NoAck) sender ! ack
-
-    case DataAvailable(count) =>
-      val data = read(count)
-      if (data.nonEmpty) handler ! Received(data)
-
-    case Terminated(actor) =>
-      self ! Close
-  }
-
-  private def read(count: Int) = {
-    val bsb = new ByteStringBuilder
-
-    val data = port.readBytes(count)
-
-    bsb ++= data
-    bsb.result
+    case Terminated(actor) => self ! Close
   }
 }
+
 private[io] object SerialOperator {
   def props(port: SerialPort, commander: ActorRef) = Props(new SerialOperator(port, commander))
 }

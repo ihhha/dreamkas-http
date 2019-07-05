@@ -1,12 +1,11 @@
 scalaVersion := "2.13.0"
-version := "0.0.6"
+version := "0.0.9"
 
 maintainer := "NZonov"
 
 lazy val akkaVersion = "2.5.23"
 lazy val akkaHttpVersion = "10.1.8"
 lazy val akkaSerial = "4.1.4"
-lazy val jsscVersion = "2.8.0"
 
 
 libraryDependencies ++= Seq(
@@ -17,7 +16,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "de.heikoseeberger" %% "akka-http-play-json" % "1.27.0",
   "com.typesafe.play" %% "play-json" % "2.7.4",
-  "org.scream3r" % "jssc" % jsscVersion,
+  "com.fazecast" % "jSerialComm" % "[2.0.0,3.0.0)",
 
   "org.scalatest" %% "scalatest" % "3.0.8" % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.23" % Test,
