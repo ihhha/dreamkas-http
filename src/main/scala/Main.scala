@@ -1,11 +1,14 @@
 import actors.Terminal
 import akka.actor.ActorSystem
+import com.fazecast.jSerialComm.SerialPort
 import services.{ConfigService, HttpService}
 import utils.Logging
 
 object Main extends App with Logging {
 
   ConfigService.getPrinter("printer1").map { device1Settings =>
+
+    log.info(s"Available serial ports: ${SerialPort.getCommPorts.map(_.getSystemPortName).mkString(", ")}")
 
     log.info(s"deviceSettings: $device1Settings")
 
