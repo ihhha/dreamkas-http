@@ -1,5 +1,5 @@
 scalaVersion := "2.13.0"
-version := "0.0.9"
+version := "0.0.10"
 
 maintainer := "NZonov"
 
