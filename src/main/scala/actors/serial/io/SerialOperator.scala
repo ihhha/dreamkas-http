@@ -27,6 +27,8 @@ private[io] class SerialOperator(port: SerialPort, handler: ActorRef) extends Ac
             val data = ByteString.fromArray(readBuffer)
 
             handler.tell(Serial.Received(data), self)
+          } else {
+            Thread.sleep(10)
           }
         } catch {
           //stop and tell operator on other exception
