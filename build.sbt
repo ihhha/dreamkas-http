@@ -1,4 +1,6 @@
-scalaVersion := "2.13.0"
+crossScalaVersions in ThisBuild := List("2.13.0", "2.12.8")
+scalaVersion in ThisBuild := crossScalaVersions.value.head
+
 version := "0.0.10"
 
 maintainer := "NZonov"
