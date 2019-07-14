@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ihhha/dreamkas-http.svg?branch=master)](https://travis-ci.org/ihhha/dreamkas-http)
+
 # Сервис для работы с принтерами Dreamkas
 
 ## Конфигурация
